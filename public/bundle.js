@@ -986,9 +986,9 @@ var state = {
     error: document.querySelector('.error')
   },
   audio: {
-    correct: 'mp3/correct.mp3',
-    wrong: 'mp3/wrong.mp3',
-    gameover: 'mp3/gameover.mp3'
+    correct: 'public/mp3/correct.mp3',
+    wrong: 'public/mp3/wrong.mp3',
+    gameover: 'public/mp3/gameover.mp3'
   }
 };
 
