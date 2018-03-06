@@ -1,0 +1,26 @@
+{
+  "name": "zhuyin-attack",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "browserify src/index.js -t [ browserify-css --minify --inlineImages --output public/bundle.css ] -t [ babelify --presets [ es2015 ] ] -o public/bundle.js",
+    "watch": "watchify -p [ browserify-livereload --host 127.0.0.1 --port 1337 ] -t [ browserify-css --minify --inlineImages --output public/bundle.css ] -t [ babelify --presets [ es2015 ] ] src/index.js -o public/bundle.js"
+  },
+  "keywords": [],
+  "author": "Pepe Becker <mail@pepebecker.com> (http://pepebecker.com)",
+  "license": "MIT",
+  "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babelify": "^8.0.0",
+    "browserify": "^16.1.0",
+    "browserify-css": "^0.14.0",
+    "browserify-livereload": "^1.0.10",
+    "watchify": "^3.10.0"
+  },
+  "dependencies": {
+    "bel": "^5.1.7",
+    "query-string": "^5.1.0"
+  }
+}
