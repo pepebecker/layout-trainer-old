@@ -1,0 +1,112 @@
+{
+  "Backquote": {
+    "default": "`",
+    "shift": "~"
+  },
+  "Digit1": {
+    "default": "1",
+    "shift": "!"
+  },
+  "Digit2": {
+    "default": "2",
+    "shift": "@"
+  },
+  "Digit3": {
+    "default": "3",
+    "shift": "#"
+  },
+  "Digit4": {
+    "default": "4",
+    "shift": "$"
+  },
+  "Digit5": {
+    "default": "5",
+    "shift": "%"
+  },
+  "Digit6": {
+    "default": "6",
+    "shift": "^"
+  },
+  "Digit7": {
+    "default": "7",
+    "shift": "&"
+  },
+  "Digit8": {
+    "default": "8",
+    "shift": "*"
+  },
+  "Digit9": {
+    "default": "9",
+    "shift": "("
+  },
+  "Digit0": {
+    "default": "0",
+    "shift": ")"
+  },
+  "Minus": {
+    "default": "-",
+    "shift": "_"
+  },
+  "Equal": {
+    "default": "=",
+    "shift": "+"
+  },
+  "KeyQ": "q",
+  "KeyW": "w",
+  "KeyE": "e",
+  "KeyR": "r",
+  "KeyT": "t",
+  "KeyY": "y",
+  "KeyU": "u",
+  "KeyI": "i",
+  "KeyO": "o",
+  "KeyP": "p",
+  "BracketLeft": {
+    "default": "[",
+    "shift": "{"
+  },
+  "BracketRight": {
+    "default": "]",
+    "shift": "}"
+  },
+  "Backslash": {
+    "default": "\\",
+    "shift": "|"
+  },
+  "KeyA": "a",
+  "KeyS": "s",
+  "KeyD": "d",
+  "KeyF": "f",
+  "KeyG": "g",
+  "KeyH": "h",
+  "KeyJ": "j",
+  "KeyK": "k",
+  "KeyL": "l",
+  "Semicolon": {
+    "default": ";",
+    "shift": ":"
+  },
+  "Quote": {
+    "default": "'",
+    "shift": "\""
+  },
+  "KeyZ": "z",
+  "KeyX": "x",
+  "KeyC": "c",
+  "KeyV": "v",
+  "KeyB": "b",
+  "KeyN": "n",
+  "KeyM": "m",
+  "Comma": {
+    "default": ",",
+    "shift": "<"
+  },
+  "Period": {
+    "default": ".",
+    "shift": ">"
+  },
+  "Slash": {
+    "default": "/",
+    "shift": "?"
+  }
+}

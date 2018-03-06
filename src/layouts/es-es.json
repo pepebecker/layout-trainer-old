@@ -1,0 +1,44 @@
+{
+  "Backquote": {
+    "default": "<",
+    "shift": ">"
+  },
+  "Digit1": {
+    "default": "1",
+    "shift": "¡"
+  },
+  "Digit2": {
+    "default": "2",
+    "shift": "!"
+  },
+  "Digit6": {
+    "default": "6",
+    "shift": "/"
+  },
+  "BracketLeft": {
+    "default": "´",
+    "shift": "º"
+  },
+  "BracketRight": {
+    "default": "`",
+    "shift": "¨"
+  },
+  "Backslash": {
+    "default": "'",
+    "shift": "\""
+  },
+  "Semicolon": "ñ",
+  "Quote": {
+    "default": ";",
+    "shift": ":"
+  },
+  "Comma": {
+    "default": ",",
+    "shift": "¿"
+  },
+  "Period": {
+    "default": ".",
+    "shift": "?"
+  },
+  "Slash": "ç"
+}

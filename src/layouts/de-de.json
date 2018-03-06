@@ -1,0 +1,63 @@
+{
+  "Backquote": {
+    "default": "<",
+    "shift": ">"
+  },
+  "Digit2": {
+    "default": "2",
+    "shift": "\""
+  },
+  "Digit3": {
+    "default": "3",
+    "shift": "§"
+  },
+  "Digit6": {
+    "default": "6",
+    "shift": "&"
+  },
+  "Digit7": {
+    "default": "7",
+    "shift": "/"
+  },
+  "Digit8": {
+    "default": "8",
+    "shift": "("
+  },
+  "Digit9": {
+    "default": "9",
+    "shift": ")"
+  },
+  "Digit0": {
+    "default": "0",
+    "shift": "="
+  },
+  "Minus": {
+    "default": "ß",
+    "shift": "?"
+  },
+  "Equal": {
+    "default": "´",
+    "shift": "`"
+  },
+  "KeyY": "z",
+  "BracketLeft": "ü",
+  "BracketRight": {
+    "default": "+",
+    "shift": "*"
+  },
+  "KeyZ": "y",
+  "Semicolon": "ö",
+  "Quote": "ä",
+  "Comma": {
+    "default": ",",
+    "shift": ";"
+  },
+  "Period": {
+    "default": ".",
+    "shift": ":"
+  },
+  "Slash": {
+    "default": "-",
+    "shift": "_"
+  }
+}

@@ -1,0 +1,182 @@
+{
+  "Backquote": {
+    "default": "·",
+    "shift": "～"
+  },
+  "Digit1": {
+    "default": "ㄅ",
+    "shift": "！"
+  },
+  "Digit2": {
+    "default": "ㄉ",
+    "shift": "＠"
+  },
+  "Digit3": {
+    "default": "ˇ",
+    "shift": "＃"
+  },
+  "Digit4": {
+    "default": "ˋ",
+    "shift": "＄"
+  },
+  "Digit5": {
+    "default": "ㄓ",
+    "shift": "％"
+  },
+  "Digit6": {
+    "default": "ˊ",
+    "shift": "＾"
+  },
+  "Digit7": {
+    "default": "˙",
+    "shift": "＆"
+  },
+  "Digit8": {
+    "default": "ㄚ",
+    "shift": "＊"
+  },
+  "Digit9": {
+    "default": "ㄞ",
+    "shift": "（"
+  },
+  "Digit0": {
+    "default": "ㄢ",
+    "shift": "）"
+  },
+  "Minus": {
+    "default": "ㄦ",
+    "shift": "＿"
+  },
+  "KeyQ": {
+    "default": "ㄆ",
+    "shift": "Ｑ"
+  },
+  "KeyW": {
+    "default": "ㄊ",
+    "shift": "Ｗ"
+  },
+  "KeyE": {
+    "default": "ㄍ",
+    "shift": "Ｅ"
+  },
+  "KeyR": {
+    "default": "ㄐ",
+    "shift": "Ｒ"
+  },
+  "KeyT": {
+    "default": "ㄔ",
+    "shift": "Ｔ"
+  },
+  "KeyY": {
+    "default": "ㄗ",
+    "shift": "Ｙ"
+  },
+  "KeyU": {
+    "default": "ㄧ",
+    "shift": "Ｕ"
+  },
+  "KeyI": {
+    "default": "ㄛ",
+    "shift": "Ｉ"
+  },
+  "KeyO": {
+    "default": "ㄟ",
+    "shift": "Ｏ"
+  },
+  "KeyP": {
+    "default": "ㄣ",
+    "shift": "Ｐ"
+  },
+  "BracketLeft": {
+    "default": "「",
+    "shift": "『"
+  },
+  "BracketRight": {
+    "default": "」",
+    "shift": "』"
+  },
+  "KeyA": {
+    "default": "ㄇ",
+    "shift": "Ａ"
+  },
+  "KeyS": {
+    "default": "ㄋ",
+    "shift": "Ｓ"
+  },
+  "KeyD": {
+    "default": "ㄎ",
+    "shift": "Ｄ"
+  },
+  "KeyF": {
+    "default": "ㄑ",
+    "shift": "Ｆ"
+  },
+  "KeyG": {
+    "default": "ㄕ",
+    "shift": "Ｇ"
+  },
+  "KeyH": {
+    "default": "ㄘ",
+    "shift": "Ｈ"
+  },
+  "KeyJ": {
+    "default": "ㄨ",
+    "shift": "Ｊ"
+  },
+  "KeyK": {
+    "default": "ㄜ",
+    "shift": "Ｋ"
+  },
+  "KeyL": {
+    "default": "ㄠ",
+    "shift": "Ｌ"
+  },
+  "Semicolon": {
+    "default": "ㄤ",
+    "shift": "："
+  },
+  "Quote": {
+    "default": "‘",
+    "shift": "“"
+  },
+  "KeyZ": {
+    "default": "ㄈ",
+    "shift": "Ｚ"
+  },
+  "KeyX": {
+    "default": "ㄌ",
+    "shift": "Ｘ"
+  },
+  "KeyC": {
+    "default": "ㄏ",
+    "shift": "Ｃ"
+  },
+  "KeyV": {
+    "default": "ㄒ",
+    "shift": "Ｖ"
+  },
+  "KeyB": {
+    "default": "ㄖ",
+    "shift": "Ｂ"
+  },
+  "KeyN": {
+    "default": "ㄙ",
+    "shift": "Ｎ"
+  },
+  "KeyM": {
+    "default": "ㄩ",
+    "shift": "Ｍ"
+  },
+  "Comma": {
+    "default": "ㄝ",
+    "shift": "，"
+  },
+  "Period": {
+    "default": "ㄡ",
+    "shift": "。"
+  },
+  "Slash": {
+    "default": "ㄥ",
+    "shift": "？"
+  }
+}

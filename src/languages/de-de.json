@@ -1,0 +1,60 @@
+{
+	"sets": {
+		"consonants": [
+			"B",
+			"C",
+			"D",
+			"F",
+			"G",
+			"H",
+			"J",
+			"K",
+			"L",
+			"M",
+			"N",
+			"P",
+			"Q",
+			"R",
+			"S",
+			"ß",
+			"T",
+			"V",
+			"W",
+			"X",
+			"Y",
+			"Z"
+		],
+		"vowels": [
+			"A",
+			"E",
+			"I",
+			"O",
+			"U",
+			"Y",
+			"Ä",
+			"Ö",
+			"Ü"
+		]
+	},
+	"modes": [
+		{
+			"label": "Consonants Only",
+			"sets": [
+				"consonants"
+			]
+		},
+		{
+			"label": "Vowels Only",
+			"sets": [
+				"vowels"
+			]
+		},
+		{
+			"label": "All letters",
+			"sets": [
+				"consonants",
+				"vowels"
+			]
+		}
+	]
+}
