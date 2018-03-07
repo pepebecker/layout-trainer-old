@@ -8,6 +8,8 @@ const WebAudioFontPlayer = require('webaudiofont')
 const utils = require('./utils')
 const langs = require('./languages')
 
+const melody = require('./melodies/beethoven')
+
 const AudioContextFunc = window.AudioContext || window.webkitAudioContext
 const audioContext = new AudioContextFunc()
 const player = new WebAudioFontPlayer()
@@ -22,6 +24,14 @@ const changeInstrument = (path, name) => {
 
 const createPlayNote = instr => note => {
   player.queueWaveTable(audioContext, audioContext.destination, instr, 0, note, 1)
+}
+
+const createPlayScore = playNote => score => {
+    const length = melody[0].notes.length
+    for(let voice of melody){
+      const note = voice.notes[score%length]
+      if(note && (score >= length*voice.startAt)) playNote(note)
+    }
 }
 
 const state = {
@@ -129,7 +139,7 @@ const update = time => {
     spawn(l[i])
     state.lastTime = time
   }
-  
+
   requestAnimationFrame(update)
 }
 
@@ -152,6 +162,7 @@ const restart = () => {
 const main = async () => {
   const instr = await changeInstrument('https://surikov.github.io/webaudiofontdata/sound/0000_JCLive_sf2_file.js', audioPreset)
   const playNote = createPlayNote(instr)
+  const playScore = createPlayScore(playNote)
 
   updateLives(state.maxLives)
 
@@ -159,7 +170,7 @@ const main = async () => {
     if (!state.started && ev.key === ' ') return start()
     if (state.gameOver && ev.key === ' ') return restart()
     if (!state.started || state.gameOver) return
-  
+
     if (ev.key === 'Escape' || ev.key === ' ') {
       if (state.pause) {
         setInfo(false)
@@ -169,23 +180,23 @@ const main = async () => {
       }
       return
     }
-  
+
     if (state.pause) return
-  
+
     const key = utils.mapKeyEvent[state.lang](ev)
     if (!key) return
     console.log(key)
-  
+
     for (let i = 0; i < state.falling.length; i++) {
       if (state.falling[i].text === key) {
         state.dom.scene.removeChild(state.falling[i].element)
         state.falling.splice(i, 1)
+        playScore(state.score)
         updateScore(state.score + 1)
-        playNote(70)
         return
       }
     }
-  
+
     updateLives(state.lives - 1)
     showError(key)
     playSound(state.audio.wrong)
