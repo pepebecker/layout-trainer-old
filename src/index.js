@@ -1,41 +1,15 @@
 'use strict'
 
 require('./style.css')
-require
 
 const { parse } = require('query-string')
-const WebAudioFontPlayer = require('webaudiofont')
 const utils = require('./utils')
 const langs = require('./languages')
-
-const melody = require('./melodies/beethoven')
-
-const AudioContextFunc = window.AudioContext || window.webkitAudioContext
-const audioContext = new AudioContextFunc()
-const player = new WebAudioFontPlayer()
-const audioPreset = '_tone_0000_JCLive_sf2_file'
-
-const changeInstrument = (path, name) => {
-  return new Promise((resolve, reject) => {
-    player.loader.startLoad(audioContext, path, name)
-    player.loader.waitLoad(() => resolve(window[name]))
-  })
-}
-
-const createPlayNote = instr => note => {
-  player.queueWaveTable(audioContext, audioContext.destination, instr, 0, note, 1)
-}
-
-const createPlayScore = playNote => score => {
-    const length = melody[0].notes.length
-    for(let voice of melody){
-      const note = voice.notes[score%length]
-      if(note && (score >= length*voice.startAt)) playNote(note)
-    }
-}
+const audio = require('./audio')
+const melodies = require('./melodies')
 
 const state = {
-  lang: 'zh_tw',
+  lang: 'en_us',
   falling: [],
   maxLives: 5,
   lives: 0,
@@ -44,7 +18,12 @@ const state = {
   started: false,
   pause: false,
   lastTime: 0,
+  show_keyboard: true,
   dom: {
+    setup: document.querySelector('.setup'),
+    start: document.querySelector('.start_btn'),
+    layout_sel: document.querySelector('.layout_sel'),
+    show_keyboard: document.querySelector('.show_keyboard'),
     scene: document.querySelector('.scene'),
     score: document.querySelector('.score_value'),
     lives: document.querySelector('.lives'),
@@ -52,20 +31,9 @@ const state = {
     error: document.querySelector('.error')
   },
   audio: {
-    correct: 'public/mp3/correct.mp3',
     wrong: 'public/mp3/wrong.mp3',
     gameover: 'public/mp3/gameover.mp3'
   }
-}
-
-state.lang = parse(location.search).lang || state.lang
-
-document.body.appendChild(utils.renderKeyboard(utils.layouts[state.lang]))
-
-const getRandom = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min
-
-const playSound = file => {
-  (new Audio(file)).play()
 }
 
 const setInfo = value => {
@@ -82,7 +50,7 @@ const updateScore = value => {
 const updateLives = value => {
   if (value < 0) {
     state.gameOver = true
-    playSound(state.audio.gameover)
+    audio.play(state.audio.gameover)
     return setInfo('Game Over')
   }
 
@@ -110,7 +78,7 @@ const spawn = text => {
   const element = document.createElement('div')
   element.appendChild(document.createTextNode(text))
   element.className = 'entity'
-  const x = getRandom(20, window.innerWidth - 40)
+  const x = utils.getRandom(20, window.innerWidth - 40)
   element.style.left = x + 'px'
   state.dom.scene.appendChild(element)
   state.falling.push({ text, element, y: 0 })
@@ -135,7 +103,7 @@ const update = time => {
     for (let set of langs[state.lang].modes[2].sets) {
       l = l.concat(langs[state.lang].sets[set])
     }
-    const i = getRandom(0, l.length - 1)
+    const i = utils.getRandom(0, l.length - 1)
     spawn(l[i])
     state.lastTime = time
   }
@@ -144,6 +112,7 @@ const update = time => {
 }
 
 const start = () => {
+  state.dom.setup.style.display = 'none'
   state.dom.info.style.display = 'none'
   state.started = true
   requestAnimationFrame(update)
@@ -159,15 +128,69 @@ const restart = () => {
   start()
 }
 
+const checkKey = (key, done) => {
+  for (let i = 0; i < state.falling.length; i++) {
+    if (state.falling[i].text === key) {
+      state.dom.scene.removeChild(state.falling[i].element)
+      state.falling.splice(i, 1)
+      done(true)
+      return
+    }
+  }
+  done(false)
+}
+
+const showKeyboard = value => {
+  state.showKeyboard = value
+  if (state.dom.keyboard) {
+    state.dom.keyboard.style.display = value ? 'block' : 'none'
+  }
+}
+
+const renderKeyboard = lang => {
+  if (state.dom.keyboard) {
+    document.body.removeChild(state.dom.keyboard)
+  }
+  state.dom.keyboard = utils.renderKeyboard(utils.layouts[lang])
+  document.body.appendChild(state.dom.keyboard)
+  showKeyboard(state.showKeyboard)
+}
+
 const main = async () => {
-  const instr = await changeInstrument('https://surikov.github.io/webaudiofontdata/sound/0000_JCLive_sf2_file.js', audioPreset)
-  const playNote = createPlayNote(instr)
-  const playScore = createPlayScore(playNote)
+  await audio.loadInstrument('https://surikov.github.io/webaudiofontdata/sound/0000_JCLive_sf2_file.js')
+  const playScore = audio.createPlayScore(melodies.beethoven)
 
   updateLives(state.maxLives)
 
+  state.dom.start.addEventListener('click', start)
+  state.dom.layout_sel.addEventListener('change', ev => {
+    state.lang = state.dom.layout_sel.value
+    renderKeyboard(state.lang)
+    localStorage.setItem('lang', state.lang)
+  })
+
+  state.dom.show_keyboard.addEventListener('change', ev => {
+    state.showKeyboard = state.dom.show_keyboard.checked
+    showKeyboard(state.showKeyboard)
+    localStorage.setItem('show_keyboard', state.showKeyboard ? 'show' : 'hide')
+  })
+
+  const lang = localStorage.getItem('lang')
+  if (lang) {
+    state.lang = lang
+    state.dom.layout_sel.value = lang
+  }
+
+  const show = localStorage.getItem('show_keyboard')
+  if (typeof show === 'string') {
+    showKeyboard(show === 'show')
+  } else {
+    showKeyboard(state.showKeyboard)
+  }
+
+  renderKeyboard(state.lang)
+
   document.addEventListener('keydown', ev => {
-    if (!state.started && ev.key === ' ') return start()
     if (state.gameOver && ev.key === ' ') return restart()
     if (!state.started || state.gameOver) return
 
@@ -187,21 +210,17 @@ const main = async () => {
     if (!key) return
     console.log(key)
 
-    for (let i = 0; i < state.falling.length; i++) {
-      if (state.falling[i].text === key) {
-        state.dom.scene.removeChild(state.falling[i].element)
-        state.falling.splice(i, 1)
+    checkKey(key, correct => {
+      if (correct) {
         playScore(state.score)
         updateScore(state.score + 1)
-        return
+      } else {
+        updateLives(state.lives - 1)
+        showError(key)
+        audio.play(state.audio.wrong)
       }
-    }
-
-    updateLives(state.lives - 1)
-    showError(key)
-    playSound(state.audio.wrong)
+    })
   })
 }
 
-main()
-.catch(console.error)
+main().catch(console.error)
