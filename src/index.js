@@ -99,7 +99,7 @@ const update = time => {
     }
   }
 
-  if (time > state.lastTime + 1000) {
+  if (time > state.lastTime + (1000 / state.speed)) {
     let l = []
     for (let set of langs[state.lang].modes[2].sets) {
       l = l.concat(langs[state.lang].sets[set])
@@ -126,6 +126,7 @@ const restart = () => {
   state.dom.scene.innerHTML = ''
   state.gameOver = false
   state.pause = false
+  state.speed = 1
   start()
 }
 
@@ -186,7 +187,7 @@ const main = async () => {
   if (typeof show === 'string') {
     showKeyboard(show === 'show')
   } else {
-    showKeyboard(state.showKeyboard)
+    showKeyboard(state.dom.show_keyboard.checked)
   }
 
   renderKeyboard(state.lang)
