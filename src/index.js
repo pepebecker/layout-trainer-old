@@ -17,6 +17,7 @@ const state = {
   gameOver: false,
   started: false,
   pause: false,
+  speed: 1,
   lastTime: 0,
   showKeyboard: true,
   dom: {
@@ -88,7 +89,7 @@ const update = time => {
   if (state.pause || state.gameOver) return
 
   for (const i in state.falling) {
-    state.falling[i].y += 1
+    state.falling[i].y += state.speed
     state.falling[i].element.style.top = state.falling[i].y + 'px'
 
     if (state.falling[i].y > window.innerHeight) {
@@ -214,6 +215,7 @@ const main = async () => {
       if (correct) {
         playScore(state.score)
         updateScore(state.score + 1)
+        state.speed *= 1.0025
       } else {
         updateLives(state.lives - 1)
         showError(key)
