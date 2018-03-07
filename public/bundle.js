@@ -2160,6 +2160,7 @@ var state = {
   gameOver: false,
   started: false,
   pause: false,
+  speed: 1,
   lastTime: 0,
   showKeyboard: true,
   dom: {
@@ -2231,7 +2232,7 @@ var update = function update(time) {
   if (state.pause || state.gameOver) return;
 
   for (var i in state.falling) {
-    state.falling[i].y += 1;
+    state.falling[i].y += state.speed;
     state.falling[i].element.style.top = state.falling[i].y + 'px';
 
     if (state.falling[i].y > window.innerHeight) {
@@ -2379,6 +2380,7 @@ var main = async function main() {
       if (correct) {
         playScore(state.score);
         updateScore(state.score + 1);
+        state.speed *= 1.0025;
       } else {
         updateLives(state.lives - 1);
         showError(key);
