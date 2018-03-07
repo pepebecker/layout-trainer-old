@@ -2242,7 +2242,7 @@ var update = function update(time) {
     }
   }
 
-  if (time > state.lastTime + 1000) {
+  if (time > state.lastTime + 1000 / state.speed) {
     var l = [];
     var _iteratorNormalCompletion = true;
     var _didIteratorError = false;
