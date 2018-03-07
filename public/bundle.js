@@ -2161,7 +2161,7 @@ var state = {
   started: false,
   pause: false,
   lastTime: 0,
-  show_keyboard: true,
+  showKeyboard: true,
   dom: {
     setup: document.querySelector('.setup'),
     start: document.querySelector('.start_btn'),
