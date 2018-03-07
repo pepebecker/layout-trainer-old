@@ -1673,6 +1673,8 @@ var WebAudioFontPlayer = require('webaudiofont');
 var utils = require('./utils');
 var langs = require('./languages');
 
+var melody = require('./melodies/beethoven');
+
 var AudioContextFunc = window.AudioContext || window.webkitAudioContext;
 var audioContext = new AudioContextFunc();
 var player = new WebAudioFontPlayer();
@@ -1690,6 +1692,37 @@ var changeInstrument = function changeInstrument(path, name) {
 var createPlayNote = function createPlayNote(instr) {
   return function (note) {
     player.queueWaveTable(audioContext, audioContext.destination, instr, 0, note, 1);
+  };
+};
+
+var createPlayScore = function createPlayScore(playNote) {
+  return function (score) {
+    var length = melody[0].notes.length;
+    var _iteratorNormalCompletion = true;
+    var _didIteratorError = false;
+    var _iteratorError = undefined;
+
+    try {
+      for (var _iterator = melody[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+        var voice = _step.value;
+
+        var note = voice.notes[score % length];
+        if (note && score >= length * voice.startAt) playNote(note);
+      }
+    } catch (err) {
+      _didIteratorError = true;
+      _iteratorError = err;
+    } finally {
+      try {
+        if (!_iteratorNormalCompletion && _iterator.return) {
+          _iterator.return();
+        }
+      } finally {
+        if (_didIteratorError) {
+          throw _iteratorError;
+        }
+      }
+    }
   };
 };
 
@@ -1793,27 +1826,27 @@ var update = function update(time) {
 
   if (time > state.lastTime + 1000) {
     var l = [];
-    var _iteratorNormalCompletion = true;
-    var _didIteratorError = false;
-    var _iteratorError = undefined;
+    var _iteratorNormalCompletion2 = true;
+    var _didIteratorError2 = false;
+    var _iteratorError2 = undefined;
 
     try {
-      for (var _iterator = langs[state.lang].modes[2].sets[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-        var set = _step.value;
+      for (var _iterator2 = langs[state.lang].modes[2].sets[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+        var set = _step2.value;
 
         l = l.concat(langs[state.lang].sets[set]);
       }
     } catch (err) {
-      _didIteratorError = true;
-      _iteratorError = err;
+      _didIteratorError2 = true;
+      _iteratorError2 = err;
     } finally {
       try {
-        if (!_iteratorNormalCompletion && _iterator.return) {
-          _iterator.return();
+        if (!_iteratorNormalCompletion2 && _iterator2.return) {
+          _iterator2.return();
         }
       } finally {
-        if (_didIteratorError) {
-          throw _iteratorError;
+        if (_didIteratorError2) {
+          throw _iteratorError2;
         }
       }
     }
@@ -1845,6 +1878,7 @@ var restart = function restart() {
 var main = async function main() {
   var instr = await changeInstrument('https://surikov.github.io/webaudiofontdata/sound/0000_JCLive_sf2_file.js', audioPreset);
   var playNote = createPlayNote(instr);
+  var playScore = createPlayScore(playNote);
 
   updateLives(state.maxLives);
 
@@ -1873,8 +1907,8 @@ var main = async function main() {
       if (state.falling[i].text === key) {
         state.dom.scene.removeChild(state.falling[i].element);
         state.falling.splice(i, 1);
+        playScore(state.score);
         updateScore(state.score + 1);
-        playNote(70);
         return;
       }
     }
@@ -1887,7 +1921,7 @@ var main = async function main() {
 
 main().catch(console.error);
 
-},{"./languages":18,"./style.css":30,"./utils":31,"query-string":7,"webaudiofont":11}],14:[function(require,module,exports){
+},{"./languages":18,"./melodies/beethoven":30,"./style.css":31,"./utils":32,"query-string":7,"webaudiofont":11}],14:[function(require,module,exports){
 module.exports={
 	"sets": {
 		"consonants": [
@@ -2805,8 +2839,38 @@ module.exports={
 }
 
 },{}],30:[function(require,module,exports){
+'use strict';
+
+var scale = {
+    c: 0 + 5 * 12,
+    cis: 1 + 5 * 12,
+    d: 2 + 5 * 12,
+    dis: 3 + 5 * 12,
+    e: 4 + 5 * 12,
+    f: 5 + 5 * 12,
+    fis: 6 + 5 * 12,
+    g: 7 + 5 * 12,
+    gis: 8 + 5 * 12,
+    a: 9 + 5 * 12,
+    ais: 10 + 5 * 12,
+    h: 11 + 5 * 12
+};
+
+var voices = [{
+    name: 'treble',
+    startAt: 0, // start at the first loop
+    notes: [scale.e, scale.e, scale.f, scale.g, scale.g, scale.f, scale.e, scale.d, scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.d, scale.e, scale.e, scale.f, scale.g, scale.g, scale.f, scale.e, scale.d, scale.c, scale.c, scale.d, scale.e, scale.d, scale.c, scale.c, scale.d, scale.d, scale.e, scale.c, scale.d, scale.e, scale.f, scale.e, scale.c, scale.d, scale.e, scale.f, scale.e, scale.d, scale.c, scale.d, scale.g - 12, scale.e, scale.e, scale.f, scale.g, scale.g, scale.f, scale.e, scale.d, scale.c, scale.c, scale.d, scale.e, scale.d, scale.c, scale.c]
+}, {
+    name: 'bass',
+    startAt: 1, // start at second loop
+    notes: [scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.c, scale.c, scale.g - 12, scale.g - 12, scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.g - 12, scale.c, scale.e - 12, scale.g - 12, scale.c, scale.d, scale.c, scale.e - 12, scale.g - 12, scale.c, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.g - 12, scale.g - 24, scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.c, scale.g - 12, scale.e - 12, scale.e - 12]
+}];
+
+module.exports = voices;
 
 },{}],31:[function(require,module,exports){
+
+},{}],32:[function(require,module,exports){
 'use strict';
 
 var _templateObject = _taggedTemplateLiteral(['\n    <div class="keyboard">\n      <div class="row">\n        <div class="key Backquote">', '</div>\n        <div class="key Digit1">', '</div>\n        <div class="key Digit2">', '</div>\n        <div class="key Digit3">', '</div>\n        <div class="key Digit4">', '</div>\n        <div class="key Digit5">', '</div>\n        <div class="key Digit6">', '</div>\n        <div class="key Digit7">', '</div>\n        <div class="key Digit8">', '</div>\n        <div class="key Digit9">', '</div>\n        <div class="key Digit0">', '</div>\n        <div class="key Minus">', '</div>\n        <div class="key Equal">', '</div>\n        <div class="key Backspace">\u2421</div>\n      </div>\n      <div class="row">\n        <div class="key Tab">\u21B9</div>\n        <div class="key KeyQ">', '</div>\n        <div class="key KeyW">', '</div>\n        <div class="key KeyE">', '</div>\n        <div class="key KeyR">', '</div>\n        <div class="key KeyT">', '</div>\n        <div class="key KeyY">', '</div>\n        <div class="key KeyU">', '</div>\n        <div class="key KeyI">', '</div>\n        <div class="key KeyO">', '</div>\n        <div class="key KeyP">', '</div>\n        <div class="key BracketLeft">', '</div>\n        <div class="key BracketRight">', '</div>\n        <div class="key Backslash">', '</div>\n      </div>\n      <div class="row">\n        <div class="key CapsLock">\u21EA</div>\n        <div class="key KeyA">', '</div>\n        <div class="key KeyS">', '</div>\n        <div class="key KeyD">', '</div>\n        <div class="key KeyF">', '</div>\n        <div class="key KeyG">', '</div>\n        <div class="key KeyH">', '</div>\n        <div class="key KeyJ">', '</div>\n        <div class="key KeyK">', '</div>\n        <div class="key KeyL">', '</div>\n        <div class="key Semicolon">', '</div>\n        <div class="key Quote">', '</div>\n        <div class="key Enter">\u23CE</div>\n      </div>\n      <div class="row">\n        <div class="key Shift">\u21E7</div>\n        <div class="key KeyZ">', '</div>\n        <div class="key KeyX">', '</div>\n        <div class="key KeyC">', '</div>\n        <div class="key KeyV">', '</div>\n        <div class="key KeyB">', '</div>\n        <div class="key KeyN">', '</div>\n        <div class="key KeyM">', '</div>\n        <div class="key Comma">', '</div>\n        <div class="key Period">', '</div>\n        <div class="key Slash">', '</div>\n        <div class="key Shift">\u21E7</div>\n      </div>\n    </div>\n  '], ['\n    <div class="keyboard">\n      <div class="row">\n        <div class="key Backquote">', '</div>\n        <div class="key Digit1">', '</div>\n        <div class="key Digit2">', '</div>\n        <div class="key Digit3">', '</div>\n        <div class="key Digit4">', '</div>\n        <div class="key Digit5">', '</div>\n        <div class="key Digit6">', '</div>\n        <div class="key Digit7">', '</div>\n        <div class="key Digit8">', '</div>\n        <div class="key Digit9">', '</div>\n        <div class="key Digit0">', '</div>\n        <div class="key Minus">', '</div>\n        <div class="key Equal">', '</div>\n        <div class="key Backspace">\u2421</div>\n      </div>\n      <div class="row">\n        <div class="key Tab">\u21B9</div>\n        <div class="key KeyQ">', '</div>\n        <div class="key KeyW">', '</div>\n        <div class="key KeyE">', '</div>\n        <div class="key KeyR">', '</div>\n        <div class="key KeyT">', '</div>\n        <div class="key KeyY">', '</div>\n        <div class="key KeyU">', '</div>\n        <div class="key KeyI">', '</div>\n        <div class="key KeyO">', '</div>\n        <div class="key KeyP">', '</div>\n        <div class="key BracketLeft">', '</div>\n        <div class="key BracketRight">', '</div>\n        <div class="key Backslash">', '</div>\n      </div>\n      <div class="row">\n        <div class="key CapsLock">\u21EA</div>\n        <div class="key KeyA">', '</div>\n        <div class="key KeyS">', '</div>\n        <div class="key KeyD">', '</div>\n        <div class="key KeyF">', '</div>\n        <div class="key KeyG">', '</div>\n        <div class="key KeyH">', '</div>\n        <div class="key KeyJ">', '</div>\n        <div class="key KeyK">', '</div>\n        <div class="key KeyL">', '</div>\n        <div class="key Semicolon">', '</div>\n        <div class="key Quote">', '</div>\n        <div class="key Enter">\u23CE</div>\n      </div>\n      <div class="row">\n        <div class="key Shift">\u21E7</div>\n        <div class="key KeyZ">', '</div>\n        <div class="key KeyX">', '</div>\n        <div class="key KeyC">', '</div>\n        <div class="key KeyV">', '</div>\n        <div class="key KeyB">', '</div>\n        <div class="key KeyN">', '</div>\n        <div class="key KeyM">', '</div>\n        <div class="key Comma">', '</div>\n        <div class="key Period">', '</div>\n        <div class="key Slash">', '</div>\n        <div class="key Shift">\u21E7</div>\n      </div>\n    </div>\n  ']);
