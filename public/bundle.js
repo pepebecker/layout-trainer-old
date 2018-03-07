@@ -2095,12 +2095,11 @@ var loadInstrument = function loadInstrument(url) {
 };
 
 var playNote = function playNote(note) {
-  player.queueWaveTable(audioContext, audioContext.destination, instr, 0, note, 1);
+  player.queueWaveTable(audioContext, audioContext.destination, instr, 0, note, 0.4, 0.4);
 };
 
 var createPlayScore = function createPlayScore(melody) {
   return function (score) {
-    var length = melody[0].notes.length;
     var _iteratorNormalCompletion = true;
     var _didIteratorError = false;
     var _iteratorError = undefined;
@@ -2109,8 +2108,11 @@ var createPlayScore = function createPlayScore(melody) {
       for (var _iterator = melody[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
         var voice = _step.value;
 
-        var note = voice.notes[score % length];
-        if (note && score >= length * voice.startAt) playNote(note);
+        var length = voice.notes.length;
+        if (score >= voice.startAt && score < voice.endAt) {
+          var note = voice.notes[(score - voice.startAt) % length];
+          if (note) playNote(note);
+        }
       }
     } catch (err) {
       _didIteratorError = true;
@@ -2324,8 +2326,8 @@ var renderKeyboard = function renderKeyboard(lang) {
 };
 
 var main = async function main() {
-  await audio.loadInstrument('https://surikov.github.io/webaudiofontdata/sound/0000_JCLive_sf2_file.js');
-  var playScore = audio.createPlayScore(melodies.beethoven);
+  await audio.loadInstrument('https://surikov.github.io/webaudiofontdata/sound/0800_SBLive_sf2.js');
+  var playScore = audio.createPlayScore(melodies.korobeiniki);
 
   updateLives(state.maxLives);
 
@@ -2393,7 +2395,7 @@ var main = async function main() {
 
 main().catch(console.error);
 
-},{"./audio":15,"./languages":21,"./melodies":34,"./style.css":36,"./utils":37,"query-string":9}],17:[function(require,module,exports){
+},{"./audio":15,"./languages":21,"./melodies":34,"./style.css":37,"./utils":38,"query-string":9}],17:[function(require,module,exports){
 module.exports={
 	"sets": {
 		"consonants": [
@@ -3330,11 +3332,13 @@ var scale = {
 
 var voices = [{
     name: 'treble',
-    startAt: 0, // start at the first loop
+    startAt: 0, // start at the first note
+    endAt: Infinity,
     notes: [scale.e, scale.e, scale.f, scale.g, scale.g, scale.f, scale.e, scale.d, scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.d, scale.e, scale.e, scale.f, scale.g, scale.g, scale.f, scale.e, scale.d, scale.c, scale.c, scale.d, scale.e, scale.d, scale.c, scale.c, scale.d, scale.d, scale.e, scale.c, scale.d, scale.e, scale.f, scale.e, scale.c, scale.d, scale.e, scale.f, scale.e, scale.d, scale.c, scale.d, scale.g - 12, scale.e, scale.e, scale.f, scale.g, scale.g, scale.f, scale.e, scale.d, scale.c, scale.c, scale.d, scale.e, scale.d, scale.c, scale.c]
 }, {
     name: 'bass',
-    startAt: 1, // start at second loop
+    startAt: 62, // start at 63rd note
+    endAt: Infinity,
     notes: [scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.c, scale.c, scale.g - 12, scale.g - 12, scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.g - 12, scale.c, scale.e - 12, scale.g - 12, scale.c, scale.d, scale.c, scale.e - 12, scale.g - 12, scale.c, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.g - 12, scale.g - 24, scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.c, scale.g - 12, scale.e - 12, scale.e - 12]
 }];
 
@@ -3344,10 +3348,125 @@ module.exports = voices;
 'use strict';
 
 module.exports = {
-  beethoven: require('./beethoven')
+  beethoven: require('./beethoven'),
+  korobeiniki: require('./korobeiniki')
 };
 
-},{"./beethoven":33}],35:[function(require,module,exports){
+},{"./beethoven":33,"./korobeiniki":35}],35:[function(require,module,exports){
+'use strict';
+
+var scale = {
+    c: 0 + 5 * 12 + 2,
+    cis: 1 + 5 * 12 + 2,
+    d: 2 + 5 * 12 + 2,
+    dis: 3 + 5 * 12 + 2,
+    e: 4 + 5 * 12 + 2,
+    f: 5 + 5 * 12 + 2,
+    fis: 6 + 5 * 12 + 2,
+    g: 7 + 5 * 12 + 2,
+    gis: 8 + 5 * 12 + 2,
+    a: 9 + 5 * 12 + 2,
+    ais: 10 + 5 * 12 + 2,
+    h: 11 + 5 * 12 + 2
+};
+
+var voices = [{
+    name: 'intro',
+    startAt: 0, // start at the first note
+    endAt: 55, // end at the 55th note
+    notes: [
+    // part 1
+    scale.e, scale.h - 12, scale.c, scale.d, scale.c, scale.h - 12, scale.a - 12, scale.a - 12, scale.c, scale.e, scale.d, scale.c, scale.h - 12, scale.h - 12, scale.c, scale.d, scale.e, scale.c, scale.a - 12, scale.a - 12, scale.d, scale.f, scale.a, scale.g, scale.f, scale.e, scale.e, scale.c, scale.e, scale.d, scale.c, scale.h - 12, scale.h - 12, scale.c, scale.d, scale.e, scale.c, scale.a - 12, scale.a - 12,
+    // part 2
+    scale.e, scale.c, scale.d, scale.h - 12, scale.c, scale.a - 12, scale.gis - 12, scale.h - 12, scale.e, scale.c, scale.d, scale.h - 12, scale.c, scale.e, scale.a, scale.gis]
+}, {
+    name: 'soprano',
+    startAt: 55, // start at the 56th note
+    endAt: Infinity,
+    notes: [
+    // part 1
+    scale.e, null, scale.h - 12, scale.c, scale.d, null, scale.c, scale.h - 12, scale.a - 12, null, scale.a - 12, scale.c, scale.e, null, scale.d, scale.c, scale.h - 12, null, scale.h - 12, scale.c, scale.d, null, scale.e, null, scale.c, null, scale.a - 12, null, scale.a - 12, null, null, null, null, scale.d, null, scale.f, scale.a, null, scale.g, scale.f, scale.e, null, scale.e, scale.c, scale.e, null, scale.d, scale.c, scale.h - 12, null, scale.h - 12, scale.c, scale.d, null, scale.e, null, scale.c, null, scale.a - 12, null, scale.a - 12, null, null, null,
+    // part 2
+    scale.e, null, scale.c, null, scale.d, null, scale.h - 12, null, scale.c, null, scale.a - 12, null, scale.gis - 12, null, scale.h - 12, null, scale.e, null, scale.c, null, scale.d, null, scale.h - 12, null, scale.c, scale.e, scale.a, null, scale.gis, null, null, null]
+}, {
+    name: 'alto',
+    startAt: 56 + 96 - 1,
+    endAt: Infinity,
+    notes: [
+    // part 1
+    scale.h - 12, null, scale.gis - 12, scale.a - 12, scale.h - 12, null, scale.a - 12, scale.gis - 12, scale.e - 12, null, scale.e - 12, scale.a - 12, scale.c, null, scale.h - 12, scale.a - 12, scale.gis - 12, null, null, null, scale.h - 12, null, scale.c - 12, null, scale.a - 12, null, scale.e - 12, null, scale.e - 12, null, null, null, null, scale.f - 12, null, scale.a - 12, scale.c, null, scale.h - 12, scale.a - 12, scale.g - 12, null, scale.g - 12, scale.e - 12, scale.g - 12, null, scale.f - 12, scale.e - 12, scale.gis - 12, null, null, null, scale.h - 12, null, scale.c - 12, null, scale.a - 12, null, scale.e - 12, null, scale.e - 12, null, null, null,
+    // part 2
+    scale.c, null, scale.a - 12, null, scale.h - 12, null, scale.gis - 12, null, scale.a - 12, null, scale.e - 12, null, scale.e - 12, null, scale.gis - 12, null, scale.c, null, scale.a - 12, null, scale.h - 12, null, scale.gis - 12, null, scale.a - 12, scale.c, scale.e, null, scale.e, null, null, null]
+}, {
+    name: 'bass',
+    startAt: 55, // start at thr 56th note
+    endAt: Infinity,
+    notes: [
+    // part 1
+    scale.e - 3 * 12 + 12, scale.e - 2 * 12 + 12, scale.e - 3 * 12 + 12, scale.e - 2 * 12 + 12, scale.e - 3 * 12 + 12, scale.e - 2 * 12 + 12, scale.e - 3 * 12 + 12, scale.e - 2 * 12 + 12, scale.a - 3 * 12 + 12, scale.a - 2 * 12 + 12, scale.a - 3 * 12 + 12, scale.a - 2 * 12 + 12, scale.a - 3 * 12 + 12, scale.a - 2 * 12 + 12, scale.a - 3 * 12 + 12, scale.a - 2 * 12 + 12, scale.gis - 3 * 12 + 12, scale.gis - 2 * 12 + 12, scale.gis - 3 * 12 + 12, scale.gis - 2 * 12 + 12, scale.e - 3 * 12 + 12, scale.e - 2 * 12 + 12, scale.e - 3 * 12 + 12, scale.e - 2 * 12 + 12, scale.a - 3 * 12 + 12, scale.a - 2 * 12 + 12, scale.a - 3 * 12 + 12, scale.a - 2 * 12 + 12, scale.a - 3 * 12 + 12, scale.a - 3 * 12 + 12, scale.h - 3 * 12 + 12, scale.c - 2 * 12 + 12, scale.d - 3 * 12 + 12, scale.d - 2 * 12 + 12, scale.d - 3 * 12 + 12, scale.d - 2 * 12 + 12, scale.d - 3 * 12 + 12, scale.d - 2 * 12 + 12, scale.d - 3 * 12 + 12, scale.d - 2 * 12 + 12, scale.c - 3 * 12 + 12, scale.c - 2 * 12 + 12, scale.c - 3 * 12 + 12, scale.c - 2 * 12 + 12, scale.c - 3 * 12 + 12, scale.c - 2 * 12 + 12, scale.c - 3 * 12 + 12, scale.c - 2 * 12 + 12, scale.g - 4 * 12 + 12, scale.g - 3 * 12 + 12, scale.g - 4 * 12 + 12, scale.g - 3 * 12 + 12, scale.e - 3 * 12 + 12, scale.e - 2 * 12 + 12, scale.e - 3 * 12 + 12, scale.e - 2 * 12 + 12, scale.a - 3 * 12 + 12, scale.a - 2 * 12 + 12, scale.a - 3 * 12 + 12, scale.a - 2 * 12 + 12, scale.a - 3 * 12 + 12, scale.a - 2 * 12 + 12, scale.a - 3 * 12 + 12, scale.a - 2 * 12 + 12,
+    // part 2
+    scale.a - 2 * 12,
+    // scale.e-(1*12),
+    scale.a - 2 * 12,
+    // scale.e-(1*12),
+    scale.a - 2 * 12,
+    // scale.e-(1*12),
+    scale.a - 2 * 12,
+    // scale.e-(1*12),
+    scale.gis - 2 * 12,
+    // scale.e-(1*12),
+    scale.gis - 2 * 12,
+    // scale.e-(1*12),
+    scale.gis - 2 * 12,
+    // scale.e-(1*12),
+    scale.gis - 2 * 12,
+    // scale.e-(1*12),
+    scale.a - 2 * 12,
+    // scale.e-(1*12),
+    scale.a - 2 * 12,
+    // scale.e-(1*12),
+    scale.a - 2 * 12,
+    // scale.e-(1*12),
+    scale.a - 2 * 12,
+    // scale.e-(1*12),
+    scale.gis - 2 * 12,
+    // scale.e-(1*12),
+    scale.gis - 2 * 12,
+    // scale.e-(1*12),
+    scale.gis - 2 * 12,
+    // scale.e-(1*12),
+    scale.gis - 2 * 12,
+    // scale.e-(1*12),
+    scale.a - 2 * 12,
+    // scale.e-(1*12),
+    scale.a - 2 * 12,
+    // scale.e-(1*12),
+    scale.a - 2 * 12,
+    // scale.e-(1*12),
+    scale.a - 2 * 12,
+    // scale.e-(1*12),
+    scale.gis - 2 * 12,
+    // scale.e-(1*12),
+    scale.gis - 2 * 12,
+    // scale.e-(1*12),
+    scale.gis - 2 * 12,
+    // scale.e-(1*12),
+    scale.gis - 2 * 12,
+    // scale.e-(1*12),
+    scale.a - 2 * 12,
+    // scale.e-(1*12),
+    scale.a - 2 * 12,
+    // scale.e-(1*12),
+    scale.a - 2 * 12,
+    // scale.e-(1*12),
+    scale.a - 2 * 12,
+    // scale.e-(1*12),
+    scale.gis - 2 * 12, scale.e - 1 * 12, scale.gis - 1 * 12, scale.gis - 2 * 12]
+}];
+
+module.exports = voices;
+
+},{}],36:[function(require,module,exports){
 'use strict';
 
 var _templateObject = _taggedTemplateLiteral(['\n    <div class="keyboard">\n      <div class="row">\n        <div class="key Backquote">', '</div>\n        <div class="key Digit1">', '</div>\n        <div class="key Digit2">', '</div>\n        <div class="key Digit3">', '</div>\n        <div class="key Digit4">', '</div>\n        <div class="key Digit5">', '</div>\n        <div class="key Digit6">', '</div>\n        <div class="key Digit7">', '</div>\n        <div class="key Digit8">', '</div>\n        <div class="key Digit9">', '</div>\n        <div class="key Digit0">', '</div>\n        <div class="key Minus">', '</div>\n        <div class="key Equal">', '</div>\n        <div class="key Backspace">\u2421</div>\n      </div>\n      <div class="row">\n        <div class="key Tab">\u21B9</div>\n        <div class="key KeyQ">', '</div>\n        <div class="key KeyW">', '</div>\n        <div class="key KeyE">', '</div>\n        <div class="key KeyR">', '</div>\n        <div class="key KeyT">', '</div>\n        <div class="key KeyY">', '</div>\n        <div class="key KeyU">', '</div>\n        <div class="key KeyI">', '</div>\n        <div class="key KeyO">', '</div>\n        <div class="key KeyP">', '</div>\n        <div class="key BracketLeft">', '</div>\n        <div class="key BracketRight">', '</div>\n        <div class="key Backslash">', '</div>\n      </div>\n      <div class="row">\n        <div class="key CapsLock">\u21EA</div>\n        <div class="key KeyA">', '</div>\n        <div class="key KeyS">', '</div>\n        <div class="key KeyD">', '</div>\n        <div class="key KeyF">', '</div>\n        <div class="key KeyG">', '</div>\n        <div class="key KeyH">', '</div>\n        <div class="key KeyJ">', '</div>\n        <div class="key KeyK">', '</div>\n        <div class="key KeyL">', '</div>\n        <div class="key Semicolon">', '</div>\n        <div class="key Quote">', '</div>\n        <div class="key Enter">\u23CE</div>\n      </div>\n      <div class="row">\n        <div class="key Shift">\u21E7</div>\n        <div class="key KeyZ">', '</div>\n        <div class="key KeyX">', '</div>\n        <div class="key KeyC">', '</div>\n        <div class="key KeyV">', '</div>\n        <div class="key KeyB">', '</div>\n        <div class="key KeyN">', '</div>\n        <div class="key KeyM">', '</div>\n        <div class="key Comma">', '</div>\n        <div class="key Period">', '</div>\n        <div class="key Slash">', '</div>\n        <div class="key Shift">\u21E7</div>\n      </div>\n    </div>\n  '], ['\n    <div class="keyboard">\n      <div class="row">\n        <div class="key Backquote">', '</div>\n        <div class="key Digit1">', '</div>\n        <div class="key Digit2">', '</div>\n        <div class="key Digit3">', '</div>\n        <div class="key Digit4">', '</div>\n        <div class="key Digit5">', '</div>\n        <div class="key Digit6">', '</div>\n        <div class="key Digit7">', '</div>\n        <div class="key Digit8">', '</div>\n        <div class="key Digit9">', '</div>\n        <div class="key Digit0">', '</div>\n        <div class="key Minus">', '</div>\n        <div class="key Equal">', '</div>\n        <div class="key Backspace">\u2421</div>\n      </div>\n      <div class="row">\n        <div class="key Tab">\u21B9</div>\n        <div class="key KeyQ">', '</div>\n        <div class="key KeyW">', '</div>\n        <div class="key KeyE">', '</div>\n        <div class="key KeyR">', '</div>\n        <div class="key KeyT">', '</div>\n        <div class="key KeyY">', '</div>\n        <div class="key KeyU">', '</div>\n        <div class="key KeyI">', '</div>\n        <div class="key KeyO">', '</div>\n        <div class="key KeyP">', '</div>\n        <div class="key BracketLeft">', '</div>\n        <div class="key BracketRight">', '</div>\n        <div class="key Backslash">', '</div>\n      </div>\n      <div class="row">\n        <div class="key CapsLock">\u21EA</div>\n        <div class="key KeyA">', '</div>\n        <div class="key KeyS">', '</div>\n        <div class="key KeyD">', '</div>\n        <div class="key KeyF">', '</div>\n        <div class="key KeyG">', '</div>\n        <div class="key KeyH">', '</div>\n        <div class="key KeyJ">', '</div>\n        <div class="key KeyK">', '</div>\n        <div class="key KeyL">', '</div>\n        <div class="key Semicolon">', '</div>\n        <div class="key Quote">', '</div>\n        <div class="key Enter">\u23CE</div>\n      </div>\n      <div class="row">\n        <div class="key Shift">\u21E7</div>\n        <div class="key KeyZ">', '</div>\n        <div class="key KeyX">', '</div>\n        <div class="key KeyC">', '</div>\n        <div class="key KeyV">', '</div>\n        <div class="key KeyB">', '</div>\n        <div class="key KeyN">', '</div>\n        <div class="key KeyM">', '</div>\n        <div class="key Comma">', '</div>\n        <div class="key Period">', '</div>\n        <div class="key Slash">', '</div>\n        <div class="key Shift">\u21E7</div>\n      </div>\n    </div>\n  ']);
@@ -3360,9 +3479,9 @@ module.exports = function (map) {
   return bel(_templateObject, map('Backquote'), map('Digit1'), map('Digit2'), map('Digit3'), map('Digit4'), map('Digit5'), map('Digit6'), map('Digit7'), map('Digit8'), map('Digit9'), map('Digit0'), map('Minus'), map('Equal'), map('KeyQ'), map('KeyW'), map('KeyE'), map('KeyR'), map('KeyT'), map('KeyY'), map('KeyU'), map('KeyI'), map('KeyO'), map('KeyP'), map('BracketLeft'), map('BracketRight'), map('Backslash'), map('KeyA'), map('KeyS'), map('KeyD'), map('KeyF'), map('KeyG'), map('KeyH'), map('KeyJ'), map('KeyK'), map('KeyL'), map('Semicolon'), map('Quote'), map('KeyZ'), map('KeyX'), map('KeyC'), map('KeyV'), map('KeyB'), map('KeyN'), map('KeyM'), map('Comma'), map('Period'), map('Slash'));
 };
 
-},{"bel":2}],36:[function(require,module,exports){
+},{"bel":2}],37:[function(require,module,exports){
 
-},{}],37:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 'use strict';
 
 var layouts = require('./layouts');
@@ -3403,4 +3522,4 @@ module.exports = {
   }
 };
 
-},{"./layouts":28,"./render-keyboard":35}]},{},[16]);
+},{"./layouts":28,"./render-keyboard":36}]},{},[16]);
