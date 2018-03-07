@@ -158,8 +158,8 @@ const renderKeyboard = lang => {
 }
 
 const main = async () => {
-  await audio.loadInstrument('https://surikov.github.io/webaudiofontdata/sound/0000_JCLive_sf2_file.js')
-  const playScore = audio.createPlayScore(melodies.beethoven)
+  await audio.loadInstrument('https://surikov.github.io/webaudiofontdata/sound/0800_SBLive_sf2.js')
+  const playScore = audio.createPlayScore(melodies.korobeiniki)
 
   updateLives(state.maxLives)
 

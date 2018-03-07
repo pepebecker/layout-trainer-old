@@ -16,14 +16,16 @@ const loadInstrument = url => {
 }
 
 const playNote = note => {
-  player.queueWaveTable(audioContext, audioContext.destination, instr, 0, note, 1)
+  player.queueWaveTable(audioContext, audioContext.destination, instr, 0, note, 0.4, 0.4)
 }
 
 const createPlayScore = melody => score => {
-  const length = melody[0].notes.length
   for (let voice of melody) {
-    const note = voice.notes[score % length]
-    if (note && (score >= length * voice.startAt)) playNote(note)
+    const length = voice.notes.length
+    if(score >= voice.startAt && score < voice.endAt){
+      const note = voice.notes[(score-voice.startAt) % length]
+      if(note) playNote(note)
+    }
   }
 }
 

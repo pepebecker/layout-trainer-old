@@ -18,7 +18,8 @@ const scale = {
 const voices = [
     {
         name: 'treble',
-        startAt: 0, // start at the first loop
+        startAt: 0, // start at the first note
+        endAt: Infinity,
         notes: [
             scale.e,
             scale.e,
@@ -85,7 +86,8 @@ const voices = [
         ]
     }, {
         name: 'bass',
-        startAt: 1, // start at second loop
+        startAt: 62, // start at 63rd note
+        endAt: Infinity,
         notes: [
             scale.c,
             scale.c,
