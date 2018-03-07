@@ -99,7 +99,7 @@ const update = time => {
     }
   }
 
-  if (time > state.lastTime + 1000) {
+  if (time > state.lastTime + (1000 / state.speed)) {
     let l = []
     for (let set of langs[state.lang].modes[2].sets) {
       l = l.concat(langs[state.lang].sets[set])
