@@ -727,6 +727,420 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 };
 
 },{}],7:[function(require,module,exports){
+(function (process){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+// resolves . and .. elements in a path array with directory names there
+// must be no slashes, empty elements, or device names (c:\) in the array
+// (so also no leading and trailing slashes - it does not distinguish
+// relative and absolute paths)
+function normalizeArray(parts, allowAboveRoot) {
+  // if the path tries to go above the root, `up` ends up > 0
+  var up = 0;
+  for (var i = parts.length - 1; i >= 0; i--) {
+    var last = parts[i];
+    if (last === '.') {
+      parts.splice(i, 1);
+    } else if (last === '..') {
+      parts.splice(i, 1);
+      up++;
+    } else if (up) {
+      parts.splice(i, 1);
+      up--;
+    }
+  }
+
+  // if the path is allowed to go above the root, restore leading ..s
+  if (allowAboveRoot) {
+    for (; up--; up) {
+      parts.unshift('..');
+    }
+  }
+
+  return parts;
+}
+
+// Split a filename into [root, dir, basename, ext], unix version
+// 'root' is just a slash, or nothing.
+var splitPathRe =
+    /^(\/?|)([\s\S]*?)((?:\.{1,2}|[^\/]+?|)(\.[^.\/]*|))(?:[\/]*)$/;
+var splitPath = function(filename) {
+  return splitPathRe.exec(filename).slice(1);
+};
+
+// path.resolve([from ...], to)
+// posix version
+exports.resolve = function() {
+  var resolvedPath = '',
+      resolvedAbsolute = false;
+
+  for (var i = arguments.length - 1; i >= -1 && !resolvedAbsolute; i--) {
+    var path = (i >= 0) ? arguments[i] : process.cwd();
+
+    // Skip empty and invalid entries
+    if (typeof path !== 'string') {
+      throw new TypeError('Arguments to path.resolve must be strings');
+    } else if (!path) {
+      continue;
+    }
+
+    resolvedPath = path + '/' + resolvedPath;
+    resolvedAbsolute = path.charAt(0) === '/';
+  }
+
+  // At this point the path should be resolved to a full absolute path, but
+  // handle relative paths to be safe (might happen when process.cwd() fails)
+
+  // Normalize the path
+  resolvedPath = normalizeArray(filter(resolvedPath.split('/'), function(p) {
+    return !!p;
+  }), !resolvedAbsolute).join('/');
+
+  return ((resolvedAbsolute ? '/' : '') + resolvedPath) || '.';
+};
+
+// path.normalize(path)
+// posix version
+exports.normalize = function(path) {
+  var isAbsolute = exports.isAbsolute(path),
+      trailingSlash = substr(path, -1) === '/';
+
+  // Normalize the path
+  path = normalizeArray(filter(path.split('/'), function(p) {
+    return !!p;
+  }), !isAbsolute).join('/');
+
+  if (!path && !isAbsolute) {
+    path = '.';
+  }
+  if (path && trailingSlash) {
+    path += '/';
+  }
+
+  return (isAbsolute ? '/' : '') + path;
+};
+
+// posix version
+exports.isAbsolute = function(path) {
+  return path.charAt(0) === '/';
+};
+
+// posix version
+exports.join = function() {
+  var paths = Array.prototype.slice.call(arguments, 0);
+  return exports.normalize(filter(paths, function(p, index) {
+    if (typeof p !== 'string') {
+      throw new TypeError('Arguments to path.join must be strings');
+    }
+    return p;
+  }).join('/'));
+};
+
+
+// path.relative(from, to)
+// posix version
+exports.relative = function(from, to) {
+  from = exports.resolve(from).substr(1);
+  to = exports.resolve(to).substr(1);
+
+  function trim(arr) {
+    var start = 0;
+    for (; start < arr.length; start++) {
+      if (arr[start] !== '') break;
+    }
+
+    var end = arr.length - 1;
+    for (; end >= 0; end--) {
+      if (arr[end] !== '') break;
+    }
+
+    if (start > end) return [];
+    return arr.slice(start, end - start + 1);
+  }
+
+  var fromParts = trim(from.split('/'));
+  var toParts = trim(to.split('/'));
+
+  var length = Math.min(fromParts.length, toParts.length);
+  var samePartsLength = length;
+  for (var i = 0; i < length; i++) {
+    if (fromParts[i] !== toParts[i]) {
+      samePartsLength = i;
+      break;
+    }
+  }
+
+  var outputParts = [];
+  for (var i = samePartsLength; i < fromParts.length; i++) {
+    outputParts.push('..');
+  }
+
+  outputParts = outputParts.concat(toParts.slice(samePartsLength));
+
+  return outputParts.join('/');
+};
+
+exports.sep = '/';
+exports.delimiter = ':';
+
+exports.dirname = function(path) {
+  var result = splitPath(path),
+      root = result[0],
+      dir = result[1];
+
+  if (!root && !dir) {
+    // No dirname whatsoever
+    return '.';
+  }
+
+  if (dir) {
+    // It has a dirname, strip trailing slash
+    dir = dir.substr(0, dir.length - 1);
+  }
+
+  return root + dir;
+};
+
+
+exports.basename = function(path, ext) {
+  var f = splitPath(path)[2];
+  // TODO: make this comparison case-insensitive on windows?
+  if (ext && f.substr(-1 * ext.length) === ext) {
+    f = f.substr(0, f.length - ext.length);
+  }
+  return f;
+};
+
+
+exports.extname = function(path) {
+  return splitPath(path)[3];
+};
+
+function filter (xs, f) {
+    if (xs.filter) return xs.filter(f);
+    var res = [];
+    for (var i = 0; i < xs.length; i++) {
+        if (f(xs[i], i, xs)) res.push(xs[i]);
+    }
+    return res;
+}
+
+// String.prototype.substr - negative index don't work in IE8
+var substr = 'ab'.substr(-1) === 'b'
+    ? function (str, start, len) { return str.substr(start, len) }
+    : function (str, start, len) {
+        if (start < 0) start = str.length + start;
+        return str.substr(start, len);
+    }
+;
+
+}).call(this,require('_process'))
+},{"_process":8}],8:[function(require,module,exports){
+// shim for using process in browser
+var process = module.exports = {};
+
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
+
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+function defaultSetTimout() {
+    throw new Error('setTimeout has not been defined');
+}
+function defaultClearTimeout () {
+    throw new Error('clearTimeout has not been defined');
+}
+(function () {
+    try {
+        if (typeof setTimeout === 'function') {
+            cachedSetTimeout = setTimeout;
+        } else {
+            cachedSetTimeout = defaultSetTimout;
+        }
+    } catch (e) {
+        cachedSetTimeout = defaultSetTimout;
+    }
+    try {
+        if (typeof clearTimeout === 'function') {
+            cachedClearTimeout = clearTimeout;
+        } else {
+            cachedClearTimeout = defaultClearTimeout;
+        }
+    } catch (e) {
+        cachedClearTimeout = defaultClearTimeout;
+    }
+} ())
+function runTimeout(fun) {
+    if (cachedSetTimeout === setTimeout) {
+        //normal enviroments in sane situations
+        return setTimeout(fun, 0);
+    }
+    // if setTimeout wasn't available but was latter defined
+    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+        cachedSetTimeout = setTimeout;
+        return setTimeout(fun, 0);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedSetTimeout(fun, 0);
+    } catch(e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+            return cachedSetTimeout.call(null, fun, 0);
+        } catch(e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+            return cachedSetTimeout.call(this, fun, 0);
+        }
+    }
+
+
+}
+function runClearTimeout(marker) {
+    if (cachedClearTimeout === clearTimeout) {
+        //normal enviroments in sane situations
+        return clearTimeout(marker);
+    }
+    // if clearTimeout wasn't available but was latter defined
+    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+        cachedClearTimeout = clearTimeout;
+        return clearTimeout(marker);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedClearTimeout(marker);
+    } catch (e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+            return cachedClearTimeout.call(null, marker);
+        } catch (e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+            return cachedClearTimeout.call(this, marker);
+        }
+    }
+
+
+
+}
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
+        return;
+    }
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
+    } else {
+        queueIndex = -1;
+    }
+    if (queue.length) {
+        drainQueue();
+    }
+}
+
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    var timeout = runTimeout(cleanUpNextTick);
+    draining = true;
+
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
+        }
+        queueIndex = -1;
+        len = queue.length;
+    }
+    currentQueue = null;
+    draining = false;
+    runClearTimeout(timeout);
+}
+
+process.nextTick = function (fun) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
+        runTimeout(drainQueue);
+    }
+};
+
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
+}
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+};
+
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
+
+},{}],9:[function(require,module,exports){
 'use strict';
 var strictUriEncode = require('strict-uri-encode');
 var objectAssign = require('object-assign');
@@ -949,7 +1363,7 @@ exports.parseUrl = function (str, opts) {
 	};
 };
 
-},{"decode-uri-component":3,"object-assign":6,"strict-uri-encode":8}],8:[function(require,module,exports){
+},{"decode-uri-component":3,"object-assign":6,"strict-uri-encode":10}],10:[function(require,module,exports){
 'use strict';
 module.exports = function (str) {
 	return encodeURIComponent(str).replace(/[!'()*]/g, function (c) {
@@ -957,7 +1371,7 @@ module.exports = function (str) {
 	});
 };
 
-},{}],9:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 'use strict'
 console.log('WebAudioFont Channel v1.04');
 function WebAudioFontChannel(audioContext) {
@@ -999,7 +1413,7 @@ if (typeof window !== 'undefined') {
 	window.WebAudioFontChannel = WebAudioFontChannel;
 }
 
-},{}],10:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 'use strict'
 console.log('WebAudioFont Loader v1.17');
 function WebAudioFontLoader(player) {
@@ -1309,7 +1723,7 @@ if (typeof window !== 'undefined') {
 	window.WebAudioFontLoader = WebAudioFontLoader;
 }
 
-},{}],11:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 'use strict'
 console.log('WebAudioFont Player v2.72');
 var WebAudioFontLoader = require('./loader');
@@ -1616,7 +2030,7 @@ if (typeof window !== 'undefined') {
 	window.WebAudioFontPlayer = WebAudioFontPlayer;
 }
 
-},{"./channel":9,"./loader":10,"./reverberator":12}],12:[function(require,module,exports){
+},{"./channel":11,"./loader":12,"./reverberator":14}],14:[function(require,module,exports){
 'use strict'
 console.log('WebAudioFont Reverberator v1.08');
 function WebAudioFontReverberator(audioContext) {
@@ -1660,42 +2074,31 @@ if (typeof window !== 'undefined') {
 	window.WebAudioFontReverberator = WebAudioFontReverberator;
 }
 
-},{}],13:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 'use strict';
 
-require('./style.css');
-require;
-
-var _require = require('query-string'),
-    parse = _require.parse;
-
 var WebAudioFontPlayer = require('webaudiofont');
-var utils = require('./utils');
-var langs = require('./languages');
-
-var melody = require('./melodies/beethoven');
+var path = require('path');
 
 var AudioContextFunc = window.AudioContext || window.webkitAudioContext;
 var audioContext = new AudioContextFunc();
 var player = new WebAudioFontPlayer();
-var audioPreset = '_tone_0000_JCLive_sf2_file';
 
-var changeInstrument = function changeInstrument(path, name) {
-  return new Promise(function (resolve, reject) {
-    player.loader.startLoad(audioContext, path, name);
-    player.loader.waitLoad(function () {
-      return resolve(window[name]);
-    });
+var instr = null;
+
+var loadInstrument = function loadInstrument(url) {
+  var name = '_tone_' + path.basename(url, '.js');
+  player.loader.startLoad(audioContext, url, name);
+  player.loader.waitLoad(function () {
+    return instr = window[name];
   });
 };
 
-var createPlayNote = function createPlayNote(instr) {
-  return function (note) {
-    player.queueWaveTable(audioContext, audioContext.destination, instr, 0, note, 1);
-  };
+var playNote = function playNote(note) {
+  player.queueWaveTable(audioContext, audioContext.destination, instr, 0, note, 1);
 };
 
-var createPlayScore = function createPlayScore(playNote) {
+var createPlayScore = function createPlayScore(melody) {
   return function (score) {
     var length = melody[0].notes.length;
     var _iteratorNormalCompletion = true;
@@ -1726,8 +2129,30 @@ var createPlayScore = function createPlayScore(playNote) {
   };
 };
 
+module.exports = {
+  loadInstrument: loadInstrument,
+  playNote: playNote,
+  createPlayScore: createPlayScore,
+  play: function play(file) {
+    return new Audio(file).play();
+  }
+};
+
+},{"path":7,"webaudiofont":13}],16:[function(require,module,exports){
+'use strict';
+
+require('./style.css');
+
+var _require = require('query-string'),
+    parse = _require.parse;
+
+var utils = require('./utils');
+var langs = require('./languages');
+var audio = require('./audio');
+var melodies = require('./melodies');
+
 var state = {
-  lang: 'zh_tw',
+  lang: 'en_us',
   falling: [],
   maxLives: 5,
   lives: 0,
@@ -1736,7 +2161,12 @@ var state = {
   started: false,
   pause: false,
   lastTime: 0,
+  show_keyboard: true,
   dom: {
+    setup: document.querySelector('.setup'),
+    start: document.querySelector('.start_btn'),
+    layout_sel: document.querySelector('.layout_sel'),
+    show_keyboard: document.querySelector('.show_keyboard'),
     scene: document.querySelector('.scene'),
     score: document.querySelector('.score_value'),
     lives: document.querySelector('.lives'),
@@ -1744,22 +2174,9 @@ var state = {
     error: document.querySelector('.error')
   },
   audio: {
-    correct: 'public/mp3/correct.mp3',
     wrong: 'public/mp3/wrong.mp3',
     gameover: 'public/mp3/gameover.mp3'
   }
-};
-
-state.lang = parse(location.search).lang || state.lang;
-
-document.body.appendChild(utils.renderKeyboard(utils.layouts[state.lang]));
-
-var getRandom = function getRandom(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-};
-
-var playSound = function playSound(file) {
-  new Audio(file).play();
 };
 
 var setInfo = function setInfo(value) {
@@ -1776,7 +2193,7 @@ var updateScore = function updateScore(value) {
 var updateLives = function updateLives(value) {
   if (value < 0) {
     state.gameOver = true;
-    playSound(state.audio.gameover);
+    audio.play(state.audio.gameover);
     return setInfo('Game Over');
   }
 
@@ -1804,7 +2221,7 @@ var spawn = function spawn(text) {
   var element = document.createElement('div');
   element.appendChild(document.createTextNode(text));
   element.className = 'entity';
-  var x = getRandom(20, window.innerWidth - 40);
+  var x = utils.getRandom(20, window.innerWidth - 40);
   element.style.left = x + 'px';
   state.dom.scene.appendChild(element);
   state.falling.push({ text: text, element: element, y: 0 });
@@ -1826,32 +2243,32 @@ var update = function update(time) {
 
   if (time > state.lastTime + 1000) {
     var l = [];
-    var _iteratorNormalCompletion2 = true;
-    var _didIteratorError2 = false;
-    var _iteratorError2 = undefined;
+    var _iteratorNormalCompletion = true;
+    var _didIteratorError = false;
+    var _iteratorError = undefined;
 
     try {
-      for (var _iterator2 = langs[state.lang].modes[2].sets[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-        var set = _step2.value;
+      for (var _iterator = langs[state.lang].modes[2].sets[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+        var set = _step.value;
 
         l = l.concat(langs[state.lang].sets[set]);
       }
     } catch (err) {
-      _didIteratorError2 = true;
-      _iteratorError2 = err;
+      _didIteratorError = true;
+      _iteratorError = err;
     } finally {
       try {
-        if (!_iteratorNormalCompletion2 && _iterator2.return) {
-          _iterator2.return();
+        if (!_iteratorNormalCompletion && _iterator.return) {
+          _iterator.return();
         }
       } finally {
-        if (_didIteratorError2) {
-          throw _iteratorError2;
+        if (_didIteratorError) {
+          throw _iteratorError;
         }
       }
     }
 
-    var _i = getRandom(0, l.length - 1);
+    var _i = utils.getRandom(0, l.length - 1);
     spawn(l[_i]);
     state.lastTime = time;
   }
@@ -1860,6 +2277,7 @@ var update = function update(time) {
 };
 
 var start = function start() {
+  state.dom.setup.style.display = 'none';
   state.dom.info.style.display = 'none';
   state.started = true;
   requestAnimationFrame(update);
@@ -1875,15 +2293,69 @@ var restart = function restart() {
   start();
 };
 
+var checkKey = function checkKey(key, done) {
+  for (var i = 0; i < state.falling.length; i++) {
+    if (state.falling[i].text === key) {
+      state.dom.scene.removeChild(state.falling[i].element);
+      state.falling.splice(i, 1);
+      done(true);
+      return;
+    }
+  }
+  done(false);
+};
+
+var showKeyboard = function showKeyboard(value) {
+  state.showKeyboard = value;
+  if (state.dom.keyboard) {
+    state.dom.keyboard.style.display = value ? 'block' : 'none';
+  }
+};
+
+var renderKeyboard = function renderKeyboard(lang) {
+  if (state.dom.keyboard) {
+    document.body.removeChild(state.dom.keyboard);
+  }
+  state.dom.keyboard = utils.renderKeyboard(utils.layouts[lang]);
+  document.body.appendChild(state.dom.keyboard);
+  showKeyboard(state.showKeyboard);
+};
+
 var main = async function main() {
-  var instr = await changeInstrument('https://surikov.github.io/webaudiofontdata/sound/0000_JCLive_sf2_file.js', audioPreset);
-  var playNote = createPlayNote(instr);
-  var playScore = createPlayScore(playNote);
+  await audio.loadInstrument('https://surikov.github.io/webaudiofontdata/sound/0000_JCLive_sf2_file.js');
+  var playScore = audio.createPlayScore(melodies.beethoven);
 
   updateLives(state.maxLives);
 
+  state.dom.start.addEventListener('click', start);
+  state.dom.layout_sel.addEventListener('change', function (ev) {
+    state.lang = state.dom.layout_sel.value;
+    renderKeyboard(state.lang);
+    localStorage.setItem('lang', state.lang);
+  });
+
+  state.dom.show_keyboard.addEventListener('change', function (ev) {
+    state.showKeyboard = state.dom.show_keyboard.checked;
+    showKeyboard(state.showKeyboard);
+    localStorage.setItem('show_keyboard', state.showKeyboard ? 'show' : 'hide');
+  });
+
+  var lang = localStorage.getItem('lang');
+  if (lang) {
+    state.lang = lang;
+    state.dom.layout_sel.value = lang;
+  }
+
+  var show = localStorage.getItem('show_keyboard');
+  if (typeof show === 'string') {
+    showKeyboard(show === 'show');
+  } else {
+    showKeyboard(state.showKeyboard);
+  }
+
+  renderKeyboard(state.lang);
+
   document.addEventListener('keydown', function (ev) {
-    if (!state.started && ev.key === ' ') return start();
     if (state.gameOver && ev.key === ' ') return restart();
     if (!state.started || state.gameOver) return;
 
@@ -1903,25 +2375,22 @@ var main = async function main() {
     if (!key) return;
     console.log(key);
 
-    for (var i = 0; i < state.falling.length; i++) {
-      if (state.falling[i].text === key) {
-        state.dom.scene.removeChild(state.falling[i].element);
-        state.falling.splice(i, 1);
+    checkKey(key, function (correct) {
+      if (correct) {
         playScore(state.score);
         updateScore(state.score + 1);
-        return;
+      } else {
+        updateLives(state.lives - 1);
+        showError(key);
+        audio.play(state.audio.wrong);
       }
-    }
-
-    updateLives(state.lives - 1);
-    showError(key);
-    playSound(state.audio.wrong);
+    });
   });
 };
 
 main().catch(console.error);
 
-},{"./languages":18,"./melodies/beethoven":30,"./style.css":31,"./utils":32,"query-string":7,"webaudiofont":11}],14:[function(require,module,exports){
+},{"./audio":15,"./languages":21,"./melodies":34,"./style.css":36,"./utils":37,"query-string":9}],17:[function(require,module,exports){
 module.exports={
 	"sets": {
 		"consonants": [
@@ -1983,7 +2452,7 @@ module.exports={
 	]
 }
 
-},{}],15:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 module.exports={
 	"sets": {
 		"consonants": [
@@ -2040,9 +2509,9 @@ module.exports={
 	]
 }
 
-},{}],16:[function(require,module,exports){
-arguments[4][15][0].apply(exports,arguments)
-},{"dup":15}],17:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
+arguments[4][18][0].apply(exports,arguments)
+},{"dup":18}],20:[function(require,module,exports){
 module.exports={
 	"sets": {
 		"consonants": [
@@ -2100,7 +2569,7 @@ module.exports={
 	]
 }
 
-},{}],18:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -2114,7 +2583,7 @@ module.exports = {
   zh_tw: require('./zh-tw')
 };
 
-},{"./de-de":14,"./en-gb":15,"./en-us":16,"./es-es":17,"./ko":19,"./zh-tw":20}],19:[function(require,module,exports){
+},{"./de-de":17,"./en-gb":18,"./en-us":19,"./es-es":20,"./ko":22,"./zh-tw":23}],22:[function(require,module,exports){
 module.exports={
 	"sets": {
 		"consonants": [
@@ -2178,7 +2647,7 @@ module.exports={
 	]
 }
 
-},{}],20:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 module.exports={
 	"sets": {
 		"initials": [
@@ -2240,7 +2709,7 @@ module.exports={
 	]
 }
 
-},{}],21:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "<",
@@ -2305,7 +2774,7 @@ module.exports={
   }
 }
 
-},{}],22:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "`",
@@ -2419,7 +2888,7 @@ module.exports={
   }
 }
 
-},{}],23:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "`",
@@ -2533,7 +3002,7 @@ module.exports={
   }
 }
 
-},{}],24:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "<",
@@ -2579,7 +3048,7 @@ module.exports={
   "Slash": "ç"
 }
 
-},{}],25:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 'use strict';
 
 var en_us = require('./en-us');
@@ -2595,7 +3064,7 @@ module.exports = {
   zh_tw: Object.assign({}, en_us, require('./zh-tw'))
 };
 
-},{"./de-de":21,"./en-gb":22,"./en-us":23,"./es-es":24,"./jp":26,"./ko":27,"./ru":28,"./zh-tw":29}],26:[function(require,module,exports){
+},{"./de-de":24,"./en-gb":25,"./en-us":26,"./es-es":27,"./jp":29,"./ko":30,"./ru":31,"./zh-tw":32}],29:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "₩",
@@ -2650,11 +3119,11 @@ module.exports={
   "KeyM": "ㅡ"
 }
 
-},{}],27:[function(require,module,exports){
-arguments[4][26][0].apply(exports,arguments)
-},{"dup":26}],28:[function(require,module,exports){
-arguments[4][26][0].apply(exports,arguments)
-},{"dup":26}],29:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
+arguments[4][29][0].apply(exports,arguments)
+},{"dup":29}],31:[function(require,module,exports){
+arguments[4][29][0].apply(exports,arguments)
+},{"dup":29}],32:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "·",
@@ -2838,7 +3307,7 @@ module.exports={
   }
 }
 
-},{}],30:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 'use strict';
 
 var scale = {
@@ -2868,9 +3337,14 @@ var voices = [{
 
 module.exports = voices;
 
-},{}],31:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
+'use strict';
 
-},{}],32:[function(require,module,exports){
+module.exports = {
+  beethoven: require('./beethoven')
+};
+
+},{"./beethoven":33}],35:[function(require,module,exports){
 'use strict';
 
 var _templateObject = _taggedTemplateLiteral(['\n    <div class="keyboard">\n      <div class="row">\n        <div class="key Backquote">', '</div>\n        <div class="key Digit1">', '</div>\n        <div class="key Digit2">', '</div>\n        <div class="key Digit3">', '</div>\n        <div class="key Digit4">', '</div>\n        <div class="key Digit5">', '</div>\n        <div class="key Digit6">', '</div>\n        <div class="key Digit7">', '</div>\n        <div class="key Digit8">', '</div>\n        <div class="key Digit9">', '</div>\n        <div class="key Digit0">', '</div>\n        <div class="key Minus">', '</div>\n        <div class="key Equal">', '</div>\n        <div class="key Backspace">\u2421</div>\n      </div>\n      <div class="row">\n        <div class="key Tab">\u21B9</div>\n        <div class="key KeyQ">', '</div>\n        <div class="key KeyW">', '</div>\n        <div class="key KeyE">', '</div>\n        <div class="key KeyR">', '</div>\n        <div class="key KeyT">', '</div>\n        <div class="key KeyY">', '</div>\n        <div class="key KeyU">', '</div>\n        <div class="key KeyI">', '</div>\n        <div class="key KeyO">', '</div>\n        <div class="key KeyP">', '</div>\n        <div class="key BracketLeft">', '</div>\n        <div class="key BracketRight">', '</div>\n        <div class="key Backslash">', '</div>\n      </div>\n      <div class="row">\n        <div class="key CapsLock">\u21EA</div>\n        <div class="key KeyA">', '</div>\n        <div class="key KeyS">', '</div>\n        <div class="key KeyD">', '</div>\n        <div class="key KeyF">', '</div>\n        <div class="key KeyG">', '</div>\n        <div class="key KeyH">', '</div>\n        <div class="key KeyJ">', '</div>\n        <div class="key KeyK">', '</div>\n        <div class="key KeyL">', '</div>\n        <div class="key Semicolon">', '</div>\n        <div class="key Quote">', '</div>\n        <div class="key Enter">\u23CE</div>\n      </div>\n      <div class="row">\n        <div class="key Shift">\u21E7</div>\n        <div class="key KeyZ">', '</div>\n        <div class="key KeyX">', '</div>\n        <div class="key KeyC">', '</div>\n        <div class="key KeyV">', '</div>\n        <div class="key KeyB">', '</div>\n        <div class="key KeyN">', '</div>\n        <div class="key KeyM">', '</div>\n        <div class="key Comma">', '</div>\n        <div class="key Period">', '</div>\n        <div class="key Slash">', '</div>\n        <div class="key Shift">\u21E7</div>\n      </div>\n    </div>\n  '], ['\n    <div class="keyboard">\n      <div class="row">\n        <div class="key Backquote">', '</div>\n        <div class="key Digit1">', '</div>\n        <div class="key Digit2">', '</div>\n        <div class="key Digit3">', '</div>\n        <div class="key Digit4">', '</div>\n        <div class="key Digit5">', '</div>\n        <div class="key Digit6">', '</div>\n        <div class="key Digit7">', '</div>\n        <div class="key Digit8">', '</div>\n        <div class="key Digit9">', '</div>\n        <div class="key Digit0">', '</div>\n        <div class="key Minus">', '</div>\n        <div class="key Equal">', '</div>\n        <div class="key Backspace">\u2421</div>\n      </div>\n      <div class="row">\n        <div class="key Tab">\u21B9</div>\n        <div class="key KeyQ">', '</div>\n        <div class="key KeyW">', '</div>\n        <div class="key KeyE">', '</div>\n        <div class="key KeyR">', '</div>\n        <div class="key KeyT">', '</div>\n        <div class="key KeyY">', '</div>\n        <div class="key KeyU">', '</div>\n        <div class="key KeyI">', '</div>\n        <div class="key KeyO">', '</div>\n        <div class="key KeyP">', '</div>\n        <div class="key BracketLeft">', '</div>\n        <div class="key BracketRight">', '</div>\n        <div class="key Backslash">', '</div>\n      </div>\n      <div class="row">\n        <div class="key CapsLock">\u21EA</div>\n        <div class="key KeyA">', '</div>\n        <div class="key KeyS">', '</div>\n        <div class="key KeyD">', '</div>\n        <div class="key KeyF">', '</div>\n        <div class="key KeyG">', '</div>\n        <div class="key KeyH">', '</div>\n        <div class="key KeyJ">', '</div>\n        <div class="key KeyK">', '</div>\n        <div class="key KeyL">', '</div>\n        <div class="key Semicolon">', '</div>\n        <div class="key Quote">', '</div>\n        <div class="key Enter">\u23CE</div>\n      </div>\n      <div class="row">\n        <div class="key Shift">\u21E7</div>\n        <div class="key KeyZ">', '</div>\n        <div class="key KeyX">', '</div>\n        <div class="key KeyC">', '</div>\n        <div class="key KeyV">', '</div>\n        <div class="key KeyB">', '</div>\n        <div class="key KeyN">', '</div>\n        <div class="key KeyM">', '</div>\n        <div class="key Comma">', '</div>\n        <div class="key Period">', '</div>\n        <div class="key Slash">', '</div>\n        <div class="key Shift">\u21E7</div>\n      </div>\n    </div>\n  ']);
@@ -2878,7 +3352,18 @@ var _templateObject = _taggedTemplateLiteral(['\n    <div class="keyboard">\n   
 function _taggedTemplateLiteral(strings, raw) { return Object.freeze(Object.defineProperties(strings, { raw: { value: Object.freeze(raw) } })); }
 
 var bel = require('bel');
+
+module.exports = function (map) {
+  return bel(_templateObject, map('Backquote'), map('Digit1'), map('Digit2'), map('Digit3'), map('Digit4'), map('Digit5'), map('Digit6'), map('Digit7'), map('Digit8'), map('Digit9'), map('Digit0'), map('Minus'), map('Equal'), map('KeyQ'), map('KeyW'), map('KeyE'), map('KeyR'), map('KeyT'), map('KeyY'), map('KeyU'), map('KeyI'), map('KeyO'), map('KeyP'), map('BracketLeft'), map('BracketRight'), map('Backslash'), map('KeyA'), map('KeyS'), map('KeyD'), map('KeyF'), map('KeyG'), map('KeyH'), map('KeyJ'), map('KeyK'), map('KeyL'), map('Semicolon'), map('Quote'), map('KeyZ'), map('KeyX'), map('KeyC'), map('KeyV'), map('KeyB'), map('KeyN'), map('KeyM'), map('Comma'), map('Period'), map('Slash'));
+};
+
+},{"bel":2}],36:[function(require,module,exports){
+
+},{}],37:[function(require,module,exports){
+'use strict';
+
 var layouts = require('./layouts');
+var _renderKeyboard = require('./render-keyboard');
 
 var mapKeyCode = function mapKeyCode(layout) {
   return function (code, shift) {
@@ -2903,11 +3388,16 @@ for (var key in layouts) {
   mapKeyEvent[key] = mapKeyEvent(layouts[key]);
 }
 
-var renderKeyboard = function renderKeyboard(layout) {
-  var map = mapKeyCode(layout);
-  return bel(_templateObject, map('Backquote'), map('Digit1'), map('Digit2'), map('Digit3'), map('Digit4'), map('Digit5'), map('Digit6'), map('Digit7'), map('Digit8'), map('Digit9'), map('Digit0'), map('Minus'), map('Equal'), map('KeyQ'), map('KeyW'), map('KeyE'), map('KeyR'), map('KeyT'), map('KeyY'), map('KeyU'), map('KeyI'), map('KeyO'), map('KeyP'), map('BracketLeft'), map('BracketRight'), map('Backslash'), map('KeyA'), map('KeyS'), map('KeyD'), map('KeyF'), map('KeyG'), map('KeyH'), map('KeyJ'), map('KeyK'), map('KeyL'), map('Semicolon'), map('Quote'), map('KeyZ'), map('KeyX'), map('KeyC'), map('KeyV'), map('KeyB'), map('KeyN'), map('KeyM'), map('Comma'), map('Period'), map('Slash'));
+module.exports = {
+  mapKeyCode: mapKeyCode,
+  mapKeyEvent: mapKeyEvent,
+  layouts: layouts,
+  renderKeyboard: function renderKeyboard(layout) {
+    return _renderKeyboard(mapKeyCode(layout));
+  },
+  getRandom: function getRandom(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
 };
 
-module.exports = { mapKeyCode: mapKeyCode, mapKeyEvent: mapKeyEvent, layouts: layouts, renderKeyboard: renderKeyboard };
-
-},{"./layouts":25,"bel":2}]},{},[13]);
+},{"./layouts":28,"./render-keyboard":35}]},{},[16]);
