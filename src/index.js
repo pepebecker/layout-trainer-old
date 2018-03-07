@@ -187,7 +187,7 @@ const main = async () => {
   if (typeof show === 'string') {
     showKeyboard(show === 'show')
   } else {
-    showKeyboard(state.showKeyboard)
+    showKeyboard(state.dom.show_keyboard.checked)
   }
 
   renderKeyboard(state.lang)
