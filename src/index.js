@@ -1,10 +1,28 @@
 'use strict'
 
 require('./style.css')
+require
 
 const { parse } = require('query-string')
+const WebAudioFontPlayer = require('webaudiofont')
 const utils = require('./utils')
 const langs = require('./languages')
+
+const AudioContextFunc = window.AudioContext || window.webkitAudioContext
+const audioContext = new AudioContextFunc()
+const player = new WebAudioFontPlayer()
+const audioPreset = '_tone_0000_JCLive_sf2_file'
+
+const changeInstrument = (path, name) => {
+  return new Promise((resolve, reject) => {
+    player.loader.startLoad(audioContext, path, name)
+    player.loader.waitLoad(() => resolve(window[name]))
+  })
+}
+
+const createPlayNote = instr => note => {
+  player.queueWaveTable(audioContext, audioContext.destination, instr, 0, note, 1)
+}
 
 const state = {
   lang: 'zh_tw',
@@ -131,40 +149,48 @@ const restart = () => {
   start()
 }
 
-updateLives(state.maxLives)
+const main = async () => {
+  const instr = await changeInstrument('https://surikov.github.io/webaudiofontdata/sound/0000_JCLive_sf2_file.js', audioPreset)
+  const playNote = createPlayNote(instr)
 
-document.addEventListener('keydown', ev => {
-  if (!state.started && ev.key === ' ') return start()
-  if (state.gameOver && ev.key === ' ') return restart()
-  if (!state.started || state.gameOver) return
+  updateLives(state.maxLives)
 
-  if (ev.key === 'Escape' || ev.key === ' ') {
-    if (state.pause) {
-      setInfo(false)
-      requestAnimationFrame(update)
-    } else {
-      setInfo('Press space or escape to continue')
-    }
-    return
-  }
-
-  if (state.pause) return
-
-  const key = utils.mapKeyEvent[state.lang](ev)
-  if (!key) return
-  console.log(key)
-
-  for (let i = 0; i < state.falling.length; i++) {
-    if (state.falling[i].text === key) {
-      state.dom.scene.removeChild(state.falling[i].element)
-      state.falling.splice(i, 1)
-      updateScore(state.score + 1)
-      playSound(state.audio.correct)
+  document.addEventListener('keydown', ev => {
+    if (!state.started && ev.key === ' ') return start()
+    if (state.gameOver && ev.key === ' ') return restart()
+    if (!state.started || state.gameOver) return
+  
+    if (ev.key === 'Escape' || ev.key === ' ') {
+      if (state.pause) {
+        setInfo(false)
+        requestAnimationFrame(update)
+      } else {
+        setInfo('Press space or escape to continue')
+      }
       return
     }
-  }
+  
+    if (state.pause) return
+  
+    const key = utils.mapKeyEvent[state.lang](ev)
+    if (!key) return
+    console.log(key)
+  
+    for (let i = 0; i < state.falling.length; i++) {
+      if (state.falling[i].text === key) {
+        state.dom.scene.removeChild(state.falling[i].element)
+        state.falling.splice(i, 1)
+        updateScore(state.score + 1)
+        playNote(70)
+        return
+      }
+    }
+  
+    updateLives(state.lives - 1)
+    showError(key)
+    playSound(state.audio.wrong)
+  })
+}
 
-  updateLives(state.lives - 1)
-  showError(key)
-  playSound(state.audio.wrong)
-})
+main()
+.catch(console.error)
