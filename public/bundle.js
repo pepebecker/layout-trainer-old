@@ -2291,6 +2291,7 @@ var restart = function restart() {
   state.dom.scene.innerHTML = '';
   state.gameOver = false;
   state.pause = false;
+  state.speed = 1;
   start();
 };
 
