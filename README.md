@@ -1,7 +1,6 @@
 # Layout Trainer
 
 [![Greenkeeper badge](https://badges.greenkeeper.io/pepebecker/layout-trainer.svg)](https://greenkeeper.io/)
-
 [![dependency status](https://img.shields.io/david/pepebecker/layout-trainer.svg)](https://david-dm.org/pepebecker/layout-trainer)
 [![dev dependency status](https://img.shields.io/david/dev/pepebecker/layout-trainer.svg)](https://david-dm.org/pepebecker/layout-trainer#info=devDependencies)
 [![MIT-licensed](https://img.shields.io/github/license/pepebecker/layout-trainer.svg)](https://opensource.org/licenses/MIT)
