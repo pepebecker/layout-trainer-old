@@ -635,98 +635,6 @@ var closeRE = RegExp('^(' + [
 function selfClosing (tag) { return closeRE.test(tag) }
 
 },{"hyperscript-attribute-to-property":4}],6:[function(require,module,exports){
-/*
-object-assign
-(c) Sindre Sorhus
-@license MIT
-*/
-
-'use strict';
-/* eslint-disable no-unused-vars */
-var getOwnPropertySymbols = Object.getOwnPropertySymbols;
-var hasOwnProperty = Object.prototype.hasOwnProperty;
-var propIsEnumerable = Object.prototype.propertyIsEnumerable;
-
-function toObject(val) {
-	if (val === null || val === undefined) {
-		throw new TypeError('Object.assign cannot be called with null or undefined');
-	}
-
-	return Object(val);
-}
-
-function shouldUseNative() {
-	try {
-		if (!Object.assign) {
-			return false;
-		}
-
-		// Detect buggy property enumeration order in older V8 versions.
-
-		// https://bugs.chromium.org/p/v8/issues/detail?id=4118
-		var test1 = new String('abc');  // eslint-disable-line no-new-wrappers
-		test1[5] = 'de';
-		if (Object.getOwnPropertyNames(test1)[0] === '5') {
-			return false;
-		}
-
-		// https://bugs.chromium.org/p/v8/issues/detail?id=3056
-		var test2 = {};
-		for (var i = 0; i < 10; i++) {
-			test2['_' + String.fromCharCode(i)] = i;
-		}
-		var order2 = Object.getOwnPropertyNames(test2).map(function (n) {
-			return test2[n];
-		});
-		if (order2.join('') !== '0123456789') {
-			return false;
-		}
-
-		// https://bugs.chromium.org/p/v8/issues/detail?id=3056
-		var test3 = {};
-		'abcdefghijklmnopqrst'.split('').forEach(function (letter) {
-			test3[letter] = letter;
-		});
-		if (Object.keys(Object.assign({}, test3)).join('') !==
-				'abcdefghijklmnopqrst') {
-			return false;
-		}
-
-		return true;
-	} catch (err) {
-		// We don't expect any of the above to throw, but better to be safe.
-		return false;
-	}
-}
-
-module.exports = shouldUseNative() ? Object.assign : function (target, source) {
-	var from;
-	var to = toObject(target);
-	var symbols;
-
-	for (var s = 1; s < arguments.length; s++) {
-		from = Object(arguments[s]);
-
-		for (var key in from) {
-			if (hasOwnProperty.call(from, key)) {
-				to[key] = from[key];
-			}
-		}
-
-		if (getOwnPropertySymbols) {
-			symbols = getOwnPropertySymbols(from);
-			for (var i = 0; i < symbols.length; i++) {
-				if (propIsEnumerable.call(from, symbols[i])) {
-					to[symbols[i]] = from[symbols[i]];
-				}
-			}
-		}
-	}
-
-	return to;
-};
-
-},{}],7:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -954,7 +862,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":8}],8:[function(require,module,exports){
+},{"_process":7}],7:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -1140,56 +1048,53 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],9:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 'use strict';
-var strictUriEncode = require('strict-uri-encode');
-var objectAssign = require('object-assign');
-var decodeComponent = require('decode-uri-component');
+const strictUriEncode = require('strict-uri-encode');
+const decodeComponent = require('decode-uri-component');
 
-function encoderForArrayFormat(opts) {
-	switch (opts.arrayFormat) {
+function encoderForArrayFormat(options) {
+	switch (options.arrayFormat) {
 		case 'index':
-			return function (key, value, index) {
+			return (key, value, index) => {
 				return value === null ? [
-					encode(key, opts),
+					encode(key, options),
 					'[',
 					index,
 					']'
 				].join('') : [
-					encode(key, opts),
+					encode(key, options),
 					'[',
-					encode(index, opts),
+					encode(index, options),
 					']=',
-					encode(value, opts)
+					encode(value, options)
 				].join('');
 			};
-
 		case 'bracket':
-			return function (key, value) {
-				return value === null ? encode(key, opts) : [
-					encode(key, opts),
+			return (key, value) => {
+				return value === null ? encode(key, options) : [
+					encode(key, options),
 					'[]=',
-					encode(value, opts)
+					encode(value, options)
 				].join('');
 			};
-
 		default:
-			return function (key, value) {
-				return value === null ? encode(key, opts) : [
-					encode(key, opts),
+			return (key, value) => {
+				return value === null ? encode(key, options) : [
+					encode(key, options),
 					'=',
-					encode(value, opts)
+					encode(value, options)
 				].join('');
 			};
 	}
 }
 
-function parserForArrayFormat(opts) {
-	var result;
+function parserForArrayFormat(options) {
+	let result;
 
-	switch (opts.arrayFormat) {
+	switch (options.arrayFormat) {
 		case 'index':
-			return function (key, value, accumulator) {
+			return (key, value, accumulator) => {
 				result = /\[(\d*)\]$/.exec(key);
 
 				key = key.replace(/\[\d*\]$/, '');
@@ -1205,25 +1110,25 @@ function parserForArrayFormat(opts) {
 
 				accumulator[key][result[1]] = value;
 			};
-
 		case 'bracket':
-			return function (key, value, accumulator) {
+			return (key, value, accumulator) => {
 				result = /(\[\])$/.exec(key);
 				key = key.replace(/\[\]$/, '');
 
 				if (!result) {
 					accumulator[key] = value;
 					return;
-				} else if (accumulator[key] === undefined) {
+				}
+
+				if (accumulator[key] === undefined) {
 					accumulator[key] = [value];
 					return;
 				}
 
 				accumulator[key] = [].concat(accumulator[key], value);
 			};
-
 		default:
-			return function (key, value, accumulator) {
+			return (key, value, accumulator) => {
 				if (accumulator[key] === undefined) {
 					accumulator[key] = value;
 					return;
@@ -1234,9 +1139,9 @@ function parserForArrayFormat(opts) {
 	}
 }
 
-function encode(value, opts) {
-	if (opts.encode) {
-		return opts.strict ? strictUriEncode(value) : encodeURIComponent(value);
+function encode(value, options) {
+	if (options.encode) {
+		return options.strict ? strictUriEncode(value) : encodeURIComponent(value);
 	}
 
 	return value;
@@ -1245,133 +1150,125 @@ function encode(value, opts) {
 function keysSorter(input) {
 	if (Array.isArray(input)) {
 		return input.sort();
-	} else if (typeof input === 'object') {
-		return keysSorter(Object.keys(input)).sort(function (a, b) {
-			return Number(a) - Number(b);
-		}).map(function (key) {
-			return input[key];
-		});
+	}
+
+	if (typeof input === 'object') {
+		return keysSorter(Object.keys(input))
+			.sort((a, b) => Number(a) - Number(b))
+			.map(key => input[key]);
 	}
 
 	return input;
 }
 
-exports.extract = function (str) {
-	var queryStart = str.indexOf('?');
+function extract(input) {
+	const queryStart = input.indexOf('?');
 	if (queryStart === -1) {
 		return '';
 	}
-	return str.slice(queryStart + 1);
-};
+	return input.slice(queryStart + 1);
+}
 
-exports.parse = function (str, opts) {
-	opts = objectAssign({arrayFormat: 'none'}, opts);
+function parse(input, options) {
+	options = Object.assign({arrayFormat: 'none'}, options);
 
-	var formatter = parserForArrayFormat(opts);
+	const formatter = parserForArrayFormat(options);
 
 	// Create an object with no prototype
-	// https://github.com/sindresorhus/query-string/issues/47
-	var ret = Object.create(null);
+	const ret = Object.create(null);
 
-	if (typeof str !== 'string') {
+	if (typeof input !== 'string') {
 		return ret;
 	}
 
-	str = str.trim().replace(/^[?#&]/, '');
+	input = input.trim().replace(/^[?#&]/, '');
 
-	if (!str) {
+	if (!input) {
 		return ret;
 	}
 
-	str.split('&').forEach(function (param) {
-		var parts = param.replace(/\+/g, ' ').split('=');
-		// Firefox (pre 40) decodes `%3D` to `=`
-		// https://github.com/sindresorhus/query-string/pull/37
-		var key = parts.shift();
-		var val = parts.length > 0 ? parts.join('=') : undefined;
+	for (const param of input.split('&')) {
+		let [key, value] = param.replace(/\+/g, ' ').split('=');
 
-		// missing `=` should be `null`:
+		// Missing `=` should be `null`:
 		// http://w3.org/TR/2012/WD-url-20120524/#collect-url-parameters
-		val = val === undefined ? null : decodeComponent(val);
+		value = value === undefined ? null : decodeComponent(value);
 
-		formatter(decodeComponent(key), val, ret);
-	});
+		formatter(decodeComponent(key), value, ret);
+	}
 
-	return Object.keys(ret).sort().reduce(function (result, key) {
-		var val = ret[key];
-		if (Boolean(val) && typeof val === 'object' && !Array.isArray(val)) {
+	return Object.keys(ret).sort().reduce((result, key) => {
+		const value = ret[key];
+		if (Boolean(value) && typeof value === 'object' && !Array.isArray(value)) {
 			// Sort object keys, not values
-			result[key] = keysSorter(val);
+			result[key] = keysSorter(value);
 		} else {
-			result[key] = val;
+			result[key] = value;
 		}
 
 		return result;
 	}, Object.create(null));
-};
+}
 
-exports.stringify = function (obj, opts) {
-	var defaults = {
+exports.extract = extract;
+exports.parse = parse;
+
+exports.stringify = (obj, options) => {
+	const defaults = {
 		encode: true,
 		strict: true,
 		arrayFormat: 'none'
 	};
 
-	opts = objectAssign(defaults, opts);
+	options = Object.assign(defaults, options);
 
-	if (opts.sort === false) {
-		opts.sort = function () {};
+	if (options.sort === false) {
+		options.sort = () => {};
 	}
 
-	var formatter = encoderForArrayFormat(opts);
+	const formatter = encoderForArrayFormat(options);
 
-	return obj ? Object.keys(obj).sort(opts.sort).map(function (key) {
-		var val = obj[key];
+	return obj ? Object.keys(obj).sort(options.sort).map(key => {
+		const value = obj[key];
 
-		if (val === undefined) {
+		if (value === undefined) {
 			return '';
 		}
 
-		if (val === null) {
-			return encode(key, opts);
+		if (value === null) {
+			return encode(key, options);
 		}
 
-		if (Array.isArray(val)) {
-			var result = [];
+		if (Array.isArray(value)) {
+			const result = [];
 
-			val.slice().forEach(function (val2) {
-				if (val2 === undefined) {
-					return;
+			for (const value2 of value.slice()) {
+				if (value2 === undefined) {
+					continue;
 				}
 
-				result.push(formatter(key, val2, result.length));
-			});
+				result.push(formatter(key, value2, result.length));
+			}
 
 			return result.join('&');
 		}
 
-		return encode(key, opts) + '=' + encode(val, opts);
-	}).filter(function (x) {
-		return x.length > 0;
-	}).join('&') : '';
+		return encode(key, options) + '=' + encode(value, options);
+	}).filter(x => x.length > 0).join('&') : '';
 };
 
-exports.parseUrl = function (str, opts) {
+exports.parseUrl = (input, options) => {
 	return {
-		url: str.split('?')[0] || '',
-		query: this.parse(this.extract(str), opts)
+		url: input.split('?')[0] || '',
+		query: parse(extract(input), options)
 	};
 };
 
-},{"decode-uri-component":3,"object-assign":6,"strict-uri-encode":10}],10:[function(require,module,exports){
+},{"decode-uri-component":3,"strict-uri-encode":9}],9:[function(require,module,exports){
 'use strict';
-module.exports = function (str) {
-	return encodeURIComponent(str).replace(/[!'()*]/g, function (c) {
-		return '%' + c.charCodeAt(0).toString(16).toUpperCase();
-	});
-};
+module.exports = str => encodeURIComponent(str).replace(/[!'()*]/g, x => `%${x.charCodeAt(0).toString(16).toUpperCase()}`);
 
-},{}],11:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 'use strict'
 console.log('WebAudioFont Channel v1.04');
 function WebAudioFontChannel(audioContext) {
@@ -1413,7 +1310,7 @@ if (typeof window !== 'undefined') {
 	window.WebAudioFontChannel = WebAudioFontChannel;
 }
 
-},{}],12:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 'use strict'
 console.log('WebAudioFont Loader v1.17');
 function WebAudioFontLoader(player) {
@@ -1723,7 +1620,7 @@ if (typeof window !== 'undefined') {
 	window.WebAudioFontLoader = WebAudioFontLoader;
 }
 
-},{}],13:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 'use strict'
 console.log('WebAudioFont Player v2.72');
 var WebAudioFontLoader = require('./loader');
@@ -2030,7 +1927,7 @@ if (typeof window !== 'undefined') {
 	window.WebAudioFontPlayer = WebAudioFontPlayer;
 }
 
-},{"./channel":11,"./loader":12,"./reverberator":14}],14:[function(require,module,exports){
+},{"./channel":10,"./loader":11,"./reverberator":13}],13:[function(require,module,exports){
 'use strict'
 console.log('WebAudioFont Reverberator v1.08');
 function WebAudioFontReverberator(audioContext) {
@@ -2074,7 +1971,7 @@ if (typeof window !== 'undefined') {
 	window.WebAudioFontReverberator = WebAudioFontReverberator;
 }
 
-},{}],15:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 'use strict';
 
 var WebAudioFontPlayer = require('webaudiofont');
@@ -2140,7 +2037,7 @@ module.exports = {
   }
 };
 
-},{"path":7,"webaudiofont":13}],16:[function(require,module,exports){
+},{"path":6,"webaudiofont":12}],15:[function(require,module,exports){
 'use strict';
 
 require('./style.css');
@@ -2395,7 +2292,7 @@ var main = async function main() {
 
 main().catch(console.error);
 
-},{"./audio":15,"./languages":21,"./melodies":34,"./style.css":37,"./utils":38,"query-string":9}],17:[function(require,module,exports){
+},{"./audio":14,"./languages":20,"./melodies":33,"./style.css":36,"./utils":37,"query-string":8}],16:[function(require,module,exports){
 module.exports={
 	"sets": {
 		"consonants": [
@@ -2457,7 +2354,7 @@ module.exports={
 	]
 }
 
-},{}],18:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 module.exports={
 	"sets": {
 		"consonants": [
@@ -2514,9 +2411,9 @@ module.exports={
 	]
 }
 
-},{}],19:[function(require,module,exports){
-arguments[4][18][0].apply(exports,arguments)
-},{"dup":18}],20:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
+arguments[4][17][0].apply(exports,arguments)
+},{"dup":17}],19:[function(require,module,exports){
 module.exports={
 	"sets": {
 		"consonants": [
@@ -2574,7 +2471,7 @@ module.exports={
 	]
 }
 
-},{}],21:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -2588,7 +2485,7 @@ module.exports = {
   zh_tw: require('./zh-tw')
 };
 
-},{"./de-de":17,"./en-gb":18,"./en-us":19,"./es-es":20,"./ko":22,"./zh-tw":23}],22:[function(require,module,exports){
+},{"./de-de":16,"./en-gb":17,"./en-us":18,"./es-es":19,"./ko":21,"./zh-tw":22}],21:[function(require,module,exports){
 module.exports={
 	"sets": {
 		"consonants": [
@@ -2652,7 +2549,7 @@ module.exports={
 	]
 }
 
-},{}],23:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 module.exports={
 	"sets": {
 		"initials": [
@@ -2714,7 +2611,7 @@ module.exports={
 	]
 }
 
-},{}],24:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "<",
@@ -2779,7 +2676,7 @@ module.exports={
   }
 }
 
-},{}],25:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "`",
@@ -2893,7 +2790,7 @@ module.exports={
   }
 }
 
-},{}],26:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "`",
@@ -3007,7 +2904,7 @@ module.exports={
   }
 }
 
-},{}],27:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "<",
@@ -3053,7 +2950,7 @@ module.exports={
   "Slash": "ç"
 }
 
-},{}],28:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 'use strict';
 
 var en_us = require('./en-us');
@@ -3069,7 +2966,7 @@ module.exports = {
   zh_tw: Object.assign({}, en_us, require('./zh-tw'))
 };
 
-},{"./de-de":24,"./en-gb":25,"./en-us":26,"./es-es":27,"./jp":29,"./ko":30,"./ru":31,"./zh-tw":32}],29:[function(require,module,exports){
+},{"./de-de":23,"./en-gb":24,"./en-us":25,"./es-es":26,"./jp":28,"./ko":29,"./ru":30,"./zh-tw":31}],28:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "₩",
@@ -3124,11 +3021,11 @@ module.exports={
   "KeyM": "ㅡ"
 }
 
-},{}],30:[function(require,module,exports){
-arguments[4][29][0].apply(exports,arguments)
-},{"dup":29}],31:[function(require,module,exports){
-arguments[4][29][0].apply(exports,arguments)
-},{"dup":29}],32:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
+arguments[4][28][0].apply(exports,arguments)
+},{"dup":28}],30:[function(require,module,exports){
+arguments[4][28][0].apply(exports,arguments)
+},{"dup":28}],31:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "·",
@@ -3312,7 +3209,7 @@ module.exports={
   }
 }
 
-},{}],33:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 'use strict';
 
 var scale = {
@@ -3344,7 +3241,7 @@ var voices = [{
 
 module.exports = voices;
 
-},{}],34:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -3352,7 +3249,7 @@ module.exports = {
   korobeiniki: require('./korobeiniki')
 };
 
-},{"./beethoven":33,"./korobeiniki":35}],35:[function(require,module,exports){
+},{"./beethoven":32,"./korobeiniki":34}],34:[function(require,module,exports){
 'use strict';
 
 var scale = {
@@ -3466,7 +3363,7 @@ var voices = [{
 
 module.exports = voices;
 
-},{}],36:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 'use strict';
 
 var _templateObject = _taggedTemplateLiteral(['\n    <div class="keyboard">\n      <div class="row">\n        <div class="key Backquote">', '</div>\n        <div class="key Digit1">', '</div>\n        <div class="key Digit2">', '</div>\n        <div class="key Digit3">', '</div>\n        <div class="key Digit4">', '</div>\n        <div class="key Digit5">', '</div>\n        <div class="key Digit6">', '</div>\n        <div class="key Digit7">', '</div>\n        <div class="key Digit8">', '</div>\n        <div class="key Digit9">', '</div>\n        <div class="key Digit0">', '</div>\n        <div class="key Minus">', '</div>\n        <div class="key Equal">', '</div>\n        <div class="key Backspace">\u2421</div>\n      </div>\n      <div class="row">\n        <div class="key Tab">\u21B9</div>\n        <div class="key KeyQ">', '</div>\n        <div class="key KeyW">', '</div>\n        <div class="key KeyE">', '</div>\n        <div class="key KeyR">', '</div>\n        <div class="key KeyT">', '</div>\n        <div class="key KeyY">', '</div>\n        <div class="key KeyU">', '</div>\n        <div class="key KeyI">', '</div>\n        <div class="key KeyO">', '</div>\n        <div class="key KeyP">', '</div>\n        <div class="key BracketLeft">', '</div>\n        <div class="key BracketRight">', '</div>\n        <div class="key Backslash">', '</div>\n      </div>\n      <div class="row">\n        <div class="key CapsLock">\u21EA</div>\n        <div class="key KeyA">', '</div>\n        <div class="key KeyS">', '</div>\n        <div class="key KeyD">', '</div>\n        <div class="key KeyF">', '</div>\n        <div class="key KeyG">', '</div>\n        <div class="key KeyH">', '</div>\n        <div class="key KeyJ">', '</div>\n        <div class="key KeyK">', '</div>\n        <div class="key KeyL">', '</div>\n        <div class="key Semicolon">', '</div>\n        <div class="key Quote">', '</div>\n        <div class="key Enter">\u23CE</div>\n      </div>\n      <div class="row">\n        <div class="key Shift">\u21E7</div>\n        <div class="key KeyZ">', '</div>\n        <div class="key KeyX">', '</div>\n        <div class="key KeyC">', '</div>\n        <div class="key KeyV">', '</div>\n        <div class="key KeyB">', '</div>\n        <div class="key KeyN">', '</div>\n        <div class="key KeyM">', '</div>\n        <div class="key Comma">', '</div>\n        <div class="key Period">', '</div>\n        <div class="key Slash">', '</div>\n        <div class="key Shift">\u21E7</div>\n      </div>\n    </div>\n  '], ['\n    <div class="keyboard">\n      <div class="row">\n        <div class="key Backquote">', '</div>\n        <div class="key Digit1">', '</div>\n        <div class="key Digit2">', '</div>\n        <div class="key Digit3">', '</div>\n        <div class="key Digit4">', '</div>\n        <div class="key Digit5">', '</div>\n        <div class="key Digit6">', '</div>\n        <div class="key Digit7">', '</div>\n        <div class="key Digit8">', '</div>\n        <div class="key Digit9">', '</div>\n        <div class="key Digit0">', '</div>\n        <div class="key Minus">', '</div>\n        <div class="key Equal">', '</div>\n        <div class="key Backspace">\u2421</div>\n      </div>\n      <div class="row">\n        <div class="key Tab">\u21B9</div>\n        <div class="key KeyQ">', '</div>\n        <div class="key KeyW">', '</div>\n        <div class="key KeyE">', '</div>\n        <div class="key KeyR">', '</div>\n        <div class="key KeyT">', '</div>\n        <div class="key KeyY">', '</div>\n        <div class="key KeyU">', '</div>\n        <div class="key KeyI">', '</div>\n        <div class="key KeyO">', '</div>\n        <div class="key KeyP">', '</div>\n        <div class="key BracketLeft">', '</div>\n        <div class="key BracketRight">', '</div>\n        <div class="key Backslash">', '</div>\n      </div>\n      <div class="row">\n        <div class="key CapsLock">\u21EA</div>\n        <div class="key KeyA">', '</div>\n        <div class="key KeyS">', '</div>\n        <div class="key KeyD">', '</div>\n        <div class="key KeyF">', '</div>\n        <div class="key KeyG">', '</div>\n        <div class="key KeyH">', '</div>\n        <div class="key KeyJ">', '</div>\n        <div class="key KeyK">', '</div>\n        <div class="key KeyL">', '</div>\n        <div class="key Semicolon">', '</div>\n        <div class="key Quote">', '</div>\n        <div class="key Enter">\u23CE</div>\n      </div>\n      <div class="row">\n        <div class="key Shift">\u21E7</div>\n        <div class="key KeyZ">', '</div>\n        <div class="key KeyX">', '</div>\n        <div class="key KeyC">', '</div>\n        <div class="key KeyV">', '</div>\n        <div class="key KeyB">', '</div>\n        <div class="key KeyN">', '</div>\n        <div class="key KeyM">', '</div>\n        <div class="key Comma">', '</div>\n        <div class="key Period">', '</div>\n        <div class="key Slash">', '</div>\n        <div class="key Shift">\u21E7</div>\n      </div>\n    </div>\n  ']);
@@ -3479,9 +3376,9 @@ module.exports = function (map) {
   return bel(_templateObject, map('Backquote'), map('Digit1'), map('Digit2'), map('Digit3'), map('Digit4'), map('Digit5'), map('Digit6'), map('Digit7'), map('Digit8'), map('Digit9'), map('Digit0'), map('Minus'), map('Equal'), map('KeyQ'), map('KeyW'), map('KeyE'), map('KeyR'), map('KeyT'), map('KeyY'), map('KeyU'), map('KeyI'), map('KeyO'), map('KeyP'), map('BracketLeft'), map('BracketRight'), map('Backslash'), map('KeyA'), map('KeyS'), map('KeyD'), map('KeyF'), map('KeyG'), map('KeyH'), map('KeyJ'), map('KeyK'), map('KeyL'), map('Semicolon'), map('Quote'), map('KeyZ'), map('KeyX'), map('KeyC'), map('KeyV'), map('KeyB'), map('KeyN'), map('KeyM'), map('Comma'), map('Period'), map('Slash'));
 };
 
-},{"bel":2}],37:[function(require,module,exports){
+},{"bel":2}],36:[function(require,module,exports){
 
-},{}],38:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 'use strict';
 
 var layouts = require('./layouts');
@@ -3522,4 +3419,4 @@ module.exports = {
   }
 };
 
-},{"./layouts":28,"./render-keyboard":36}]},{},[16]);
+},{"./layouts":27,"./render-keyboard":35}]},{},[15]);

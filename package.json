@@ -20,8 +20,8 @@
     "watchify": "^3.10.0"
   },
   "dependencies": {
-    "bel": "^5.1.7",
-    "query-string": "^5.1.0",
+    "bel": "^6.0.0",
+    "query-string": "^6.0.0",
     "webaudiofont": "^2.5.20"
   }
 }
