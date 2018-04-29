@@ -2371,7 +2371,7 @@ var main = async function main() {
 
 main().catch(console.error);
 
-},{"./audio":14,"./languages":21,"./melodies":35,"./style.css":38,"./utils":39,"query-string":8}],16:[function(require,module,exports){
+},{"./audio":14,"./languages":20,"./melodies":32,"./style.css":35,"./utils":36,"query-string":8}],16:[function(require,module,exports){
 'use strict';
 
 var rows = [["Backquote", "Digit1", "Digit2", "Digit3", "Digit4", "Digit5", "Digit6", "Digit7", "Digit8", "Digit9", "Digit0", "Minus", "Equal"], ["KeyQ", "KeyW", "KeyE", "KeyR", "KeyT", "KeyY", "KeyU", "KeyI", "KeyO", "KeyP", "BracketLeft", "BracketRight", "Backslash"], ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG', 'KeyH', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon', 'Quote'], ['KeyZ', 'KeyX', 'KeyC', 'KeyV', 'KeyB', 'KeyN', 'KeyM', 'Comma', 'Period', 'Slash']];
@@ -2454,64 +2454,6 @@ module.exports={
 
 },{}],18:[function(require,module,exports){
 module.exports={
-	"label": "English (U.K.)",
-	"sets": {
-		"consonants": [
-			"B",
-			"C",
-			"D",
-			"F",
-			"G",
-			"H",
-			"J",
-			"K",
-			"L",
-			"M",
-			"N",
-			"P",
-			"Q",
-			"R",
-			"S",
-			"T",
-			"V",
-			"W",
-			"X",
-			"Z"
-		],
-		"vowels": [
-			"A",
-			"E",
-			"I",
-			"O",
-			"U",
-			"Y"
-		]
-	},
-	"modes": [
-		{
-			"label": "Consonants Only",
-			"sets": [
-				"consonants"
-			]
-		},
-		{
-			"label": "Vowels Only",
-			"sets": [
-				"vowels"
-			]
-		},
-		{
-			"label": "All Letters",
-			"sets": [
-				"consonants",
-				"vowels"
-			]
-		}
-	]
-}
-
-},{}],19:[function(require,module,exports){
-module.exports={
 	"label": "English (U.S.)",
 	"sets": {
 		"consonants": [
@@ -2568,7 +2510,7 @@ module.exports={
 	]
 }
 
-},{}],20:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 module.exports={
 	"label": "Spanish",
 	"sets": {
@@ -2627,21 +2569,19 @@ module.exports={
 	]
 }
 
-},{}],21:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 'use strict';
 
 module.exports = {
   en_us: require('./en-us'),
-  en_gb: require('./en-gb'),
   de_de: require('./de-de'),
   es_es: require('./es-es'),
-  // jp:    require('./jp'   ),
   ko: require('./ko'),
   ru: require('./ru'),
   zh_tw: require('./zh-tw')
 };
 
-},{"./de-de":17,"./en-gb":18,"./en-us":19,"./es-es":20,"./ko":22,"./ru":23,"./zh-tw":24}],22:[function(require,module,exports){
+},{"./de-de":17,"./en-us":18,"./es-es":19,"./ko":21,"./ru":22,"./zh-tw":23}],21:[function(require,module,exports){
 module.exports={
 	"label": "Korean",
 	"sets": {
@@ -2706,7 +2646,7 @@ module.exports={
 	]
 }
 
-},{}],23:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 module.exports={
 	"label": "Russian",
 	"sets": {
@@ -2756,7 +2696,7 @@ module.exports={
 	]
 }
 
-},{}],24:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 module.exports={
 	"label": "Chinese (Zhuyin)",
 	"sets": {
@@ -2819,7 +2759,7 @@ module.exports={
 	]
 }
 
-},{}],25:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "<",
@@ -2884,121 +2824,7 @@ module.exports={
   }
 }
 
-},{}],26:[function(require,module,exports){
-module.exports={
-  "Backquote": {
-    "default": "`",
-    "shift": "~"
-  },
-  "Digit1": {
-    "default": "1",
-    "shift": "!"
-  },
-  "Digit2": {
-    "default": "2",
-    "shift": "@"
-  },
-  "Digit3": {
-    "default": "3",
-    "shift": "#"
-  },
-  "Digit4": {
-    "default": "4",
-    "shift": "$"
-  },
-  "Digit5": {
-    "default": "5",
-    "shift": "%"
-  },
-  "Digit6": {
-    "default": "6",
-    "shift": "^"
-  },
-  "Digit7": {
-    "default": "7",
-    "shift": "&"
-  },
-  "Digit8": {
-    "default": "8",
-    "shift": "*"
-  },
-  "Digit9": {
-    "default": "9",
-    "shift": "("
-  },
-  "Digit0": {
-    "default": "0",
-    "shift": ")"
-  },
-  "Minus": {
-    "default": "-",
-    "shift": "_"
-  },
-  "Equal": {
-    "default": "=",
-    "shift": "+"
-  },
-  "KeyQ": "q",
-  "KeyW": "w",
-  "KeyE": "e",
-  "KeyR": "r",
-  "KeyT": "t",
-  "KeyY": "y",
-  "KeyU": "u",
-  "KeyI": "i",
-  "KeyO": "o",
-  "KeyP": "p",
-  "BracketLeft": {
-    "default": "[",
-    "shift": "{"
-  },
-  "BracketRight": {
-    "default": "]",
-    "shift": "}"
-  },
-  "Backslash": {
-    "default": "\\",
-    "shift": "|"
-  },
-  "KeyA": "p",
-  "KeyS": "s",
-  "KeyD": "d",
-  "KeyF": "f",
-  "KeyG": "g",
-  "KeyH": "h",
-  "KeyJ": "j",
-  "KeyK": "k",
-  "KeyL": "l",
-  "Semicolon": {
-    "default": ";",
-    "shift": ":"
-  },
-  "Quote": {
-    "default": "'",
-    "shift": "\""
-  },
-  "KeyZ": "z",
-  "KeyX": "x",
-  "KeyC": "c",
-  "KeyV": "v",
-  "KeyB": "b",
-  "KeyN": "n",
-  "KeyM": "m",
-  "Comma": {
-    "default": ",",
-    "shift": "<"
-  },
-  "Period": {
-    "default": ".",
-    "shift": ">"
-  },
-  "Slash": {
-    "default": "/",
-    "shift": "?"
-  }
-}
-
-},{}],27:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "`",
@@ -3112,7 +2938,7 @@ module.exports={
   }
 }
 
-},{}],28:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "<",
@@ -3158,7 +2984,7 @@ module.exports={
   "Slash": "ç"
 }
 
-},{}],29:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 'use strict';
 
 var en_us = require('./en-us');
@@ -3166,15 +2992,13 @@ var en_us = require('./en-us');
 module.exports = {
   en_us: en_us,
   de_de: Object.assign({}, en_us, require('./de-de')),
-  en_gb: Object.assign({}, en_us, require('./en-gb')),
   es_es: Object.assign({}, en_us, require('./es-es')),
-  jp: Object.assign({}, en_us, require('./jp')),
   ko: Object.assign({}, en_us, require('./ko')),
   ru: Object.assign({}, en_us, require('./ru')),
   zh_tw: Object.assign({}, en_us, require('./zh-tw'))
 };
 
-},{"./de-de":25,"./en-gb":26,"./en-us":27,"./es-es":28,"./jp":30,"./ko":31,"./ru":32,"./zh-tw":33}],30:[function(require,module,exports){
+},{"./de-de":24,"./en-us":25,"./es-es":26,"./ko":28,"./ru":29,"./zh-tw":30}],28:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "₩",
@@ -3229,9 +3053,7 @@ module.exports={
   "KeyM": "ㅡ"
 }
 
-},{}],31:[function(require,module,exports){
-arguments[4][30][0].apply(exports,arguments)
-},{"dup":30}],32:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "]",
@@ -3300,7 +3122,7 @@ module.exports={
   "Period": "ю"
 }
 
-},{}],33:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "·",
@@ -3484,7 +3306,7 @@ module.exports={
   }
 }
 
-},{}],34:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 'use strict';
 
 var scale = {
@@ -3520,7 +3342,7 @@ module.exports = {
     instrument: 'https://surikov.github.io/webaudiofontdata/sound/0000_JCLive_sf2_file.js'
 };
 
-},{}],35:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -3528,7 +3350,7 @@ module.exports = {
   korobeiniki: require('./korobeiniki')
 };
 
-},{"./beethoven":34,"./korobeiniki":36}],36:[function(require,module,exports){
+},{"./beethoven":31,"./korobeiniki":33}],33:[function(require,module,exports){
 'use strict';
 
 var scale = {
@@ -3646,7 +3468,7 @@ module.exports = {
     instrument: 'https://surikov.github.io/webaudiofontdata/sound/0800_SBLive_sf2.js'
 };
 
-},{}],37:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 'use strict';
 
 var _templateObject = _taggedTemplateLiteral(['\n    <div class="keyboard">\n      <div class="row">\n        <div class="key Backquote">', '</div>\n        <div class="key Digit1">', '</div>\n        <div class="key Digit2">', '</div>\n        <div class="key Digit3">', '</div>\n        <div class="key Digit4">', '</div>\n        <div class="key Digit5">', '</div>\n        <div class="key Digit6">', '</div>\n        <div class="key Digit7">', '</div>\n        <div class="key Digit8">', '</div>\n        <div class="key Digit9">', '</div>\n        <div class="key Digit0">', '</div>\n        <div class="key Minus">', '</div>\n        <div class="key Equal">', '</div>\n        <div class="key Backspace">\u2421</div>\n      </div>\n      <div class="row">\n        <div class="key Tab">\u21B9</div>\n        <div class="key KeyQ">', '</div>\n        <div class="key KeyW">', '</div>\n        <div class="key KeyE">', '</div>\n        <div class="key KeyR">', '</div>\n        <div class="key KeyT">', '</div>\n        <div class="key KeyY">', '</div>\n        <div class="key KeyU">', '</div>\n        <div class="key KeyI">', '</div>\n        <div class="key KeyO">', '</div>\n        <div class="key KeyP">', '</div>\n        <div class="key BracketLeft">', '</div>\n        <div class="key BracketRight">', '</div>\n        <div class="key Backslash">', '</div>\n      </div>\n      <div class="row">\n        <div class="key CapsLock">\u21EA</div>\n        <div class="key KeyA">', '</div>\n        <div class="key KeyS">', '</div>\n        <div class="key KeyD">', '</div>\n        <div class="key KeyF">', '</div>\n        <div class="key KeyG">', '</div>\n        <div class="key KeyH">', '</div>\n        <div class="key KeyJ">', '</div>\n        <div class="key KeyK">', '</div>\n        <div class="key KeyL">', '</div>\n        <div class="key Semicolon">', '</div>\n        <div class="key Quote">', '</div>\n        <div class="key Enter">\u23CE</div>\n      </div>\n      <div class="row">\n        <div class="key Shift">\u21E7</div>\n        <div class="key KeyZ">', '</div>\n        <div class="key KeyX">', '</div>\n        <div class="key KeyC">', '</div>\n        <div class="key KeyV">', '</div>\n        <div class="key KeyB">', '</div>\n        <div class="key KeyN">', '</div>\n        <div class="key KeyM">', '</div>\n        <div class="key Comma">', '</div>\n        <div class="key Period">', '</div>\n        <div class="key Slash">', '</div>\n        <div class="key Shift">\u21E7</div>\n      </div>\n    </div>\n  '], ['\n    <div class="keyboard">\n      <div class="row">\n        <div class="key Backquote">', '</div>\n        <div class="key Digit1">', '</div>\n        <div class="key Digit2">', '</div>\n        <div class="key Digit3">', '</div>\n        <div class="key Digit4">', '</div>\n        <div class="key Digit5">', '</div>\n        <div class="key Digit6">', '</div>\n        <div class="key Digit7">', '</div>\n        <div class="key Digit8">', '</div>\n        <div class="key Digit9">', '</div>\n        <div class="key Digit0">', '</div>\n        <div class="key Minus">', '</div>\n        <div class="key Equal">', '</div>\n        <div class="key Backspace">\u2421</div>\n      </div>\n      <div class="row">\n        <div class="key Tab">\u21B9</div>\n        <div class="key KeyQ">', '</div>\n        <div class="key KeyW">', '</div>\n        <div class="key KeyE">', '</div>\n        <div class="key KeyR">', '</div>\n        <div class="key KeyT">', '</div>\n        <div class="key KeyY">', '</div>\n        <div class="key KeyU">', '</div>\n        <div class="key KeyI">', '</div>\n        <div class="key KeyO">', '</div>\n        <div class="key KeyP">', '</div>\n        <div class="key BracketLeft">', '</div>\n        <div class="key BracketRight">', '</div>\n        <div class="key Backslash">', '</div>\n      </div>\n      <div class="row">\n        <div class="key CapsLock">\u21EA</div>\n        <div class="key KeyA">', '</div>\n        <div class="key KeyS">', '</div>\n        <div class="key KeyD">', '</div>\n        <div class="key KeyF">', '</div>\n        <div class="key KeyG">', '</div>\n        <div class="key KeyH">', '</div>\n        <div class="key KeyJ">', '</div>\n        <div class="key KeyK">', '</div>\n        <div class="key KeyL">', '</div>\n        <div class="key Semicolon">', '</div>\n        <div class="key Quote">', '</div>\n        <div class="key Enter">\u23CE</div>\n      </div>\n      <div class="row">\n        <div class="key Shift">\u21E7</div>\n        <div class="key KeyZ">', '</div>\n        <div class="key KeyX">', '</div>\n        <div class="key KeyC">', '</div>\n        <div class="key KeyV">', '</div>\n        <div class="key KeyB">', '</div>\n        <div class="key KeyN">', '</div>\n        <div class="key KeyM">', '</div>\n        <div class="key Comma">', '</div>\n        <div class="key Period">', '</div>\n        <div class="key Slash">', '</div>\n        <div class="key Shift">\u21E7</div>\n      </div>\n    </div>\n  ']);
@@ -3659,9 +3481,9 @@ module.exports = function (map) {
   return bel(_templateObject, map('Backquote'), map('Digit1'), map('Digit2'), map('Digit3'), map('Digit4'), map('Digit5'), map('Digit6'), map('Digit7'), map('Digit8'), map('Digit9'), map('Digit0'), map('Minus'), map('Equal'), map('KeyQ'), map('KeyW'), map('KeyE'), map('KeyR'), map('KeyT'), map('KeyY'), map('KeyU'), map('KeyI'), map('KeyO'), map('KeyP'), map('BracketLeft'), map('BracketRight'), map('Backslash'), map('KeyA'), map('KeyS'), map('KeyD'), map('KeyF'), map('KeyG'), map('KeyH'), map('KeyJ'), map('KeyK'), map('KeyL'), map('Semicolon'), map('Quote'), map('KeyZ'), map('KeyX'), map('KeyC'), map('KeyV'), map('KeyB'), map('KeyN'), map('KeyM'), map('Comma'), map('Period'), map('Slash'));
 };
 
-},{"bel":2}],38:[function(require,module,exports){
+},{"bel":2}],35:[function(require,module,exports){
 
-},{}],39:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 'use strict';
 
 var layouts = require('./layouts');
@@ -3719,4 +3541,4 @@ module.exports = {
   }
 };
 
-},{"./key-positions":16,"./layouts":29,"./render-keyboard":37}]},{},[15]);
+},{"./key-positions":16,"./layouts":27,"./render-keyboard":34}]},{},[15]);
