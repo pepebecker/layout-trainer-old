@@ -126,6 +126,15 @@ body {
   color: tomato;
 }
 
+.explosion {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  animation-name: explosion;
+  animation-duration: 1s;
+}
+
 .error {
   background: rgba(255, 0, 0, 0.6);
   position: fixed;
@@ -179,4 +188,20 @@ body {
 .keyboard .Shift {
   background: #eee;
   width: 70px;
+}
+
+@keyframes explosion {
+  0% {
+    background: transparent
+  }
+  10% {
+    background: rgb(39, 194, 255);
+  }
+  100% {
+    background: transparent;
+    width: 100px;
+    height: 100px;
+    margin-left: -30px;
+    margin-top: -30px;
+  }
 }

@@ -138,6 +138,13 @@ const restart = () => {
 }
 
 const removeKey = index => {
+  const explosion = document.createElement('div')
+  explosion.classList.add('explosion')
+  explosion.style.left = state.falling[index].element.style.left
+  explosion.style.top = state.falling[index].element.style.top
+  state.dom.scene.appendChild(explosion)
+  setTimeout(() => state.dom.scene.removeChild(explosion), 1000)
+
   state.dom.scene.removeChild(state.falling[index].element)
   state.falling.splice(index, 1)
 }
