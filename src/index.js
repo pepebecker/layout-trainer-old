@@ -19,6 +19,7 @@ const state = {
   started: false,
   pause: false,
   speed: 1,
+  difficulty: 1,
   lastTime: 0,
   showKeyboard: 'hidden',
   melody: 'beethoven',
@@ -29,6 +30,7 @@ const state = {
     mode_sel: document.querySelector('.mode_sel'),
     melody_sel: document.querySelector('.melody_sel'),
     keyboard_sel: document.querySelector('.keyboard_sel'),
+    difficulty_sel: document.querySelector('.difficulty_sel'),
     scene: document.querySelector('.scene'),
     score: document.querySelector('.score_value'),
     lives: document.querySelector('.lives'),
@@ -94,7 +96,7 @@ const update = time => {
   if (state.pause || state.gameOver) return
 
   for (const i in state.falling) {
-    state.falling[i].y += state.speed
+    state.falling[i].y += state.speed / 2
     state.falling[i].element.style.top = state.falling[i].y + 'px'
 
     if (state.falling[i].y > window.innerHeight) {
@@ -104,7 +106,7 @@ const update = time => {
     }
   }
 
-  if (time > state.lastTime + (1000 / state.speed)) {
+  if (time > state.lastTime + (2000 / state.speed)) {
     let l = []
     for (let set of langs[state.lang].modes[state.mode].sets) {
       l = l.concat(langs[state.lang].sets[set])
@@ -216,7 +218,7 @@ const main = async () => {
   updateLayoutSelection(state.lang)
 
   // Mode
-  state.mode = localStorage.getItem('mode') || 0
+  state.mode = parseInt(localStorage.getItem('mode') || 0)
   updateModeSelection(state.lang, state.mode)
 
   // Melody
@@ -228,6 +230,10 @@ const main = async () => {
   state.showKeyboard = localStorage.getItem('keyboard') || 'hide'
   state.dom.keyboard_sel.value = state.showKeyboard
   renderKeyboard(state.lang)
+
+  // Difficulty
+  state.difficulty = parseInt(localStorage.getItem('difficulty') || 1)
+  state.dom.difficulty_sel.value = state.difficulty
 
   await audio.loadInstrument(melodies[state.melody].instrument)
   state.dom.start.addEventListener('click', start)
@@ -263,6 +269,11 @@ const main = async () => {
     showKeyboard(state.showKeyboard)
   })
 
+  state.dom.difficulty_sel.addEventListener('change', ev => {
+    state.difficulty = parseInt(state.dom.difficulty_sel.value)
+    localStorage.setItem('difficulty', state.difficulty)
+  })
+
   document.addEventListener('keydown', ev => {
     if (state.gameOver && ev.key === ' ') return restart()
     if (!state.started || state.gameOver) return
@@ -285,7 +296,7 @@ const main = async () => {
     if (checkKey(key)) {
       playScore(state.score)
       updateScore(state.score + 1)
-      state.speed *= 1.0025
+      state.speed *= (1 + (0.003 * state.difficulty))
     } else {
       updateLives(state.lives - 1)
       showError(key)
