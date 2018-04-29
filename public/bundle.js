@@ -2079,6 +2079,7 @@ var state = {
   started: false,
   pause: false,
   speed: 1,
+  difficulty: 1,
   lastTime: 0,
   showKeyboard: 'hidden',
   melody: 'beethoven',
@@ -2089,6 +2090,7 @@ var state = {
     mode_sel: document.querySelector('.mode_sel'),
     melody_sel: document.querySelector('.melody_sel'),
     keyboard_sel: document.querySelector('.keyboard_sel'),
+    difficulty_sel: document.querySelector('.difficulty_sel'),
     scene: document.querySelector('.scene'),
     score: document.querySelector('.score_value'),
     lives: document.querySelector('.lives'),
@@ -2139,12 +2141,13 @@ var showError = function showError(key) {
   }, 200);
 };
 
-var spawn = function spawn(text) {
-  var x = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : -1;
+var spawn = function spawn(text, shift) {
+  var x = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : -1;
 
   var element = document.createElement('div');
   element.appendChild(document.createTextNode(text));
   element.className = 'entity';
+  if (shift) element.classList.add('shift');
   x = x > -1 ? x : utils.getRandom(20, window.innerWidth - 40);
   element.style.left = x + 'px';
   state.dom.scene.appendChild(element);
@@ -2155,7 +2158,7 @@ var update = function update(time) {
   if (state.pause || state.gameOver) return;
 
   for (var i in state.falling) {
-    state.falling[i].y += state.speed;
+    state.falling[i].y += state.speed / 2;
     state.falling[i].element.style.top = state.falling[i].y + 'px';
 
     if (state.falling[i].y > window.innerHeight) {
@@ -2165,7 +2168,7 @@ var update = function update(time) {
     }
   }
 
-  if (time > state.lastTime + 1000 / state.speed) {
+  if (time > state.lastTime + 2000 / state.speed) {
     var l = [];
     var _iteratorNormalCompletion = true;
     var _didIteratorError = false;
@@ -2193,9 +2196,13 @@ var update = function update(time) {
     }
 
     var _i = utils.getRandom(0, l.length - 1);
-    var code = utils.mapKeyToCode(state.lang, l[_i]);
+
+    var _utils$mapKeyToCode = utils.mapKeyToCode(state.lang, l[_i]),
+        code = _utils$mapKeyToCode.code,
+        shift = _utils$mapKeyToCode.shift;
+
     var x = utils.keyPositions[code];
-    spawn(l[_i], x * (window.innerWidth - 40) + 20);
+    spawn(l[_i], shift, x * (window.innerWidth - 40) + 20);
     state.lastTime = time;
   }
 
@@ -2220,16 +2227,28 @@ var restart = function restart() {
   start();
 };
 
-var checkKey = function checkKey(key, done) {
+var removeKey = function removeKey(index) {
+  var explosion = document.createElement('div');
+  explosion.classList.add('explosion');
+  explosion.style.left = state.falling[index].element.style.left;
+  explosion.style.top = state.falling[index].element.style.top;
+  state.dom.scene.appendChild(explosion);
+  setTimeout(function () {
+    return state.dom.scene.removeChild(explosion);
+  }, 1000);
+
+  state.dom.scene.removeChild(state.falling[index].element);
+  state.falling.splice(index, 1);
+};
+
+var checkKey = function checkKey(key) {
   for (var i = 0; i < state.falling.length; i++) {
     if (state.falling[i].text === key) {
-      state.dom.scene.removeChild(state.falling[i].element);
-      state.falling.splice(i, 1);
-      done(true);
-      return;
+      removeKey(i);
+      return true;
     }
   }
-  done(false);
+  return false;
 };
 
 var showKeyboard = function showKeyboard(value) {
@@ -2289,7 +2308,7 @@ var main = async function main() {
   updateLayoutSelection(state.lang);
 
   // Mode
-  state.mode = localStorage.getItem('mode') || 0;
+  state.mode = parseInt(localStorage.getItem('mode') || 0);
   updateModeSelection(state.lang, state.mode);
 
   // Melody
@@ -2301,6 +2320,10 @@ var main = async function main() {
   state.showKeyboard = localStorage.getItem('keyboard') || 'hide';
   state.dom.keyboard_sel.value = state.showKeyboard;
   renderKeyboard(state.lang);
+
+  // Difficulty
+  state.difficulty = parseInt(localStorage.getItem('difficulty') || 1);
+  state.dom.difficulty_sel.value = state.difficulty;
 
   await audio.loadInstrument(melodies[state.melody].instrument);
   state.dom.start.addEventListener('click', start);
@@ -2335,6 +2358,11 @@ var main = async function main() {
     showKeyboard(state.showKeyboard);
   });
 
+  state.dom.difficulty_sel.addEventListener('change', function (ev) {
+    state.difficulty = parseInt(state.dom.difficulty_sel.value);
+    localStorage.setItem('difficulty', state.difficulty);
+  });
+
   document.addEventListener('keydown', function (ev) {
     if (state.gameOver && ev.key === ' ') return restart();
     if (!state.started || state.gameOver) return;
@@ -2353,19 +2381,16 @@ var main = async function main() {
 
     var key = utils.mapKeyEvent[state.lang](ev);
     if (!key) return;
-    console.log(key);
 
-    checkKey(key, function (correct) {
-      if (correct) {
-        playScore(state.score);
-        updateScore(state.score + 1);
-        state.speed *= 1.0025;
-      } else {
-        updateLives(state.lives - 1);
-        showError(key);
-        audio.play(state.audio.wrong);
-      }
-    });
+    if (checkKey(key)) {
+      playScore(state.score);
+      updateScore(state.score + 1);
+      state.speed *= 1 + 0.003 * state.difficulty;
+    } else {
+      updateLives(state.lives - 1);
+      showError(key);
+      audio.play(state.audio.wrong);
+    }
   });
 };
 
@@ -3518,11 +3543,11 @@ var mapKeyToCode = function mapKeyToCode(lang, key) {
   key = key.toLowerCase();
   for (var code in layout) {
     if (typeof layout[code] === 'string' && layout[code].toLowerCase() === key) {
-      return code;
+      return { code: code, shift: false };
     } else if (typeof layout[code].default === 'string' && layout[code].default.toLowerCase() === key) {
-      return code;
+      return { code: code, shift: false };
     } else if (typeof layout[code].shift === 'string' && layout[code].shift.toLowerCase() === key) {
-      return code;
+      return { code: code, shift: true };
     }
   }
 };
