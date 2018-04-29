@@ -422,4 +422,8 @@ const voices = [
     }
 ]
 
-module.exports = voices
+module.exports = {
+    voices,
+    label: 'Korobeiniki',
+    instrument: 'https://surikov.github.io/webaudiofontdata/sound/0800_SBLive_sf2.js'
+}

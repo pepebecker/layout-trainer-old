@@ -155,4 +155,8 @@ const voices = [
     }
 ]
 
-module.exports = voices
+module.exports = {
+    voices,
+    label: 'Beethoven',
+    instrument: 'https://surikov.github.io/webaudiofontdata/sound/0000_JCLive_sf2_file.js'
+}

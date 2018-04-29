@@ -1,4 +1,5 @@
 {
+	"label": "German",
 	"sets": {
 		"consonants": [
 			"B",
@@ -50,7 +51,7 @@
 			]
 		},
 		{
-			"label": "All letters",
+			"label": "All Letters",
 			"sets": [
 				"consonants",
 				"vowels"

@@ -1,4 +1,5 @@
 {
+	"label": "English (U.S.)",
 	"sets": {
 		"consonants": [
 			"B",
@@ -45,7 +46,7 @@
 			]
 		},
 		{
-			"label": "All letters",
+			"label": "All Letters",
 			"sets": [
 				"consonants",
 				"vowels"

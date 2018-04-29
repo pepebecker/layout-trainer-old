@@ -9,7 +9,8 @@ const audio = require('./audio')
 const melodies = require('./melodies')
 
 const state = {
-  lang: 'en_us',
+  lang: null,
+  mode: 0,
   falling: [],
   maxLives: 5,
   lives: 0,
@@ -19,12 +20,15 @@ const state = {
   pause: false,
   speed: 1,
   lastTime: 0,
-  showKeyboard: true,
+  showKeyboard: 'hidden',
+  melody: 'beethoven',
   dom: {
     setup: document.querySelector('.setup'),
     start: document.querySelector('.start_btn'),
     layout_sel: document.querySelector('.layout_sel'),
-    show_keyboard: document.querySelector('.show_keyboard'),
+    mode_sel: document.querySelector('.mode_sel'),
+    melody_sel: document.querySelector('.melody_sel'),
+    keyboard_sel: document.querySelector('.keyboard_sel'),
     scene: document.querySelector('.scene'),
     score: document.querySelector('.score_value'),
     lives: document.querySelector('.lives'),
@@ -101,7 +105,7 @@ const update = time => {
 
   if (time > state.lastTime + (1000 / state.speed)) {
     let l = []
-    for (let set of langs[state.lang].modes[2].sets) {
+    for (let set of langs[state.lang].modes[state.mode].sets) {
       l = l.concat(langs[state.lang].sets[set])
     }
     const i = utils.getRandom(0, l.length - 1)
@@ -143,9 +147,18 @@ const checkKey = (key, done) => {
 }
 
 const showKeyboard = value => {
-  state.showKeyboard = value
   if (state.dom.keyboard) {
-    state.dom.keyboard.style.display = value ? 'block' : 'none'
+    if (value == 'left') {
+      state.dom.keyboard.style.left = '0'
+      state.dom.keyboard.style.right = 'auto'
+      state.dom.keyboard.style.display = 'block'
+    } else if (value == 'right') {
+      state.dom.keyboard.style.right = '0'
+      state.dom.keyboard.style.left = 'auto'
+      state.dom.keyboard.style.display = 'block'
+    } else {
+      state.dom.keyboard.style.display = 'none'
+    }
   }
 }
 
@@ -158,39 +171,84 @@ const renderKeyboard = lang => {
   showKeyboard(state.showKeyboard)
 }
 
-const main = async () => {
-  await audio.loadInstrument('https://surikov.github.io/webaudiofontdata/sound/0800_SBLive_sf2.js')
-  const playScore = audio.createPlayScore(melodies.korobeiniki)
+const updateLayoutSelection = selectedLang => {
+  state.dom.layout_sel.innerHTML = ''
+  for (const l in langs) {
+    const opt = new Option(langs[l].label, l, null, selectedLang === l)
+    state.dom.layout_sel.appendChild(opt)
+  }
+}
 
+const updateModeSelection = (lang, selectedMode) => {
+  state.dom.mode_sel.innerHTML = ''
+  for (const i in langs[lang].modes) {
+    const opt = new Option(langs[lang].modes[i].label, i, null, selectedMode === i)
+    state.dom.mode_sel.appendChild(opt)
+  }
+}
+
+const updateMelodySelection = selectedMelody => {
+  state.dom.melody_sel.innerHTML = ''
+  for (const m in melodies) {
+    const opt = new Option(melodies[m].label, m, null, selectedMelody === m)
+    state.dom.melody_sel.appendChild(opt)
+  }
+}
+
+const main = async () => {
   updateLives(state.maxLives)
 
+  // Language
+  state.lang = localStorage.getItem('lang') || Object.keys(langs)[0]
+  updateLayoutSelection(state.lang)
+
+  // Mode
+  state.mode = localStorage.getItem('mode') || 0
+  updateModeSelection(state.lang, state.mode)
+
+  // Melody
+  state.melody = localStorage.getItem('melody') || Object.keys(melodies)[0]
+  updateMelodySelection(state.melody)
+  let playScore = audio.createPlayScore(melodies[state.melody].voices)
+
+  // Keyboard
+  state.showKeyboard = localStorage.getItem('keyboard') || 'hide'
+  state.dom.keyboard_sel.value = state.showKeyboard
+  renderKeyboard(state.lang)
+
+  await audio.loadInstrument(melodies[state.melody].instrument)
   state.dom.start.addEventListener('click', start)
+
   state.dom.layout_sel.addEventListener('change', ev => {
     state.lang = state.dom.layout_sel.value
-    renderKeyboard(state.lang)
+    state.mode = 0
     localStorage.setItem('lang', state.lang)
+    localStorage.setItem('mode', state.mode)
+    updateModeSelection(state.lang, 0)
+    renderKeyboard(state.lang)
   })
 
-  state.dom.show_keyboard.addEventListener('change', ev => {
-    state.showKeyboard = state.dom.show_keyboard.checked
+  state.dom.mode_sel.addEventListener('change', ev => {
+    state.mode = parseInt(state.dom.mode_sel.value)
+    localStorage.setItem('mode', state.mode)
+  })
+
+  state.dom.melody_sel.addEventListener('change', ev => {
+    state.melody = state.dom.melody_sel.value
+    localStorage.setItem('melody', state.melody)
+    state.dom.start.disabled = true
+    audio.loadInstrument(melodies[state.melody].instrument)
+    .then(() => {
+      playScore = audio.createPlayScore(melodies[state.melody].voices)
+      state.dom.start.disabled = false
+    })
+  })
+
+  state.dom.keyboard_sel.addEventListener('change', ev => {
+    state.showKeyboard = state.dom.keyboard_sel.value
+    localStorage.setItem('keyboard', state.showKeyboard)
     showKeyboard(state.showKeyboard)
-    localStorage.setItem('show_keyboard', state.showKeyboard ? 'show' : 'hide')
   })
-
-  const lang = localStorage.getItem('lang')
-  if (lang) {
-    state.lang = lang
-    state.dom.layout_sel.value = lang
-  }
-
-  const show = localStorage.getItem('show_keyboard')
-  if (typeof show === 'string') {
-    showKeyboard(show === 'show')
-  } else {
-    showKeyboard(state.dom.show_keyboard.checked)
-  }
-
-  renderKeyboard(state.lang)
 
   document.addEventListener('keydown', ev => {
     if (state.gameOver && ev.key === ' ') return restart()

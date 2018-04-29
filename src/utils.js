@@ -14,7 +14,7 @@ const mapKeyCode = layout => (code, shift) => {
 }
 
 const mapKeyEvent = layout => ev => {
-  if (ev.code === 'Quote' || ev.code === 'Slash') ev.preventDefault() // Firefox Quicks find
+  if (ev.code === 'Quote' || ev.code === 'Slash') ev.preventDefault() // Firefox Quick find
   return mapKeyCode(layout)(ev.code, ev.shiftKey)
 }
 

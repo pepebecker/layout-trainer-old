@@ -9,10 +9,15 @@ const player = new WebAudioFontPlayer()
 
 let instr = null
 
-const loadInstrument = url => {
+const loadInstrument = async url => {
   const name = '_tone_' + path.basename(url, '.js')
   player.loader.startLoad(audioContext, url, name)
-  player.loader.waitLoad(() => instr = window[name])
+  return new Promise((resolve, reject) => {
+    player.loader.waitLoad(() => {
+      instr = window[name]
+      resolve(instr)
+    })
+  })
 }
 
 const playNote = note => {

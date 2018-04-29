@@ -1,4 +1,5 @@
 {
+	"label": "Chinese (Zhuyin)",
 	"sets": {
 		"initials": [
 			"ㄅ",
@@ -50,7 +51,7 @@
 			]
 		},
 		{
-			"label": "All letters",
+			"label": "All Letters",
 			"sets": [
 				"initials",
 				"finals"
