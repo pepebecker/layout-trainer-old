@@ -1,4 +1,4 @@
-(function(){function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s}return e})()({1:[function(require,module,exports){
+(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 var trailingNewlineRegex = /\n[\s]+$/
 var leadingNewlineRegex = /^\n[\s]+/
 var trailingSpaceRegex = /[\s]+$/
@@ -382,7 +382,16 @@ module.exports = function (h, opts) {
         if (xstate === ATTR_VALUE_SQ) xstate = ATTR_VALUE
         if (xstate === ATTR_VALUE_W) xstate = ATTR_VALUE
         if (xstate === ATTR) xstate = ATTR_KEY
-        p.push([ VAR, xstate, arg ])
+        if (xstate === OPEN) {
+          if (reg === '/') {
+            p.push([ OPEN, '/', arg ])
+            reg = ''
+          } else {
+            p.push([ OPEN, arg ])
+          }
+        } else {
+          p.push([ VAR, xstate, arg ])
+        }
         parts.push.apply(parts, p)
       } else parts.push.apply(parts, parse(strings[i]))
     }
@@ -500,7 +509,7 @@ module.exports = function (h, opts) {
           reg = ''
           state = OPEN
         } else if (c === '>' && !quot(state) && state !== COMMENT) {
-          if (state === OPEN) {
+          if (state === OPEN && reg.length) {
             res.push([OPEN,reg])
           } else if (state === ATTR_KEY) {
             res.push([ATTR_KEY,reg])
@@ -527,7 +536,9 @@ module.exports = function (h, opts) {
         } else if (state === OPEN && c === '/' && reg.length) {
           // no-op, self closing tag without a space <br/>
         } else if (state === OPEN && /\s/.test(c)) {
-          res.push([OPEN, reg])
+          if (reg.length) {
+            res.push([OPEN, reg])
+          }
           reg = ''
           state = ATTR
         } else if (state === OPEN) {
@@ -1622,7 +1633,7 @@ if (typeof window !== 'undefined') {
 
 },{}],12:[function(require,module,exports){
 'use strict'
-console.log('WebAudioFont Player v2.72');
+console.log('WebAudioFont Player v2.76');
 var WebAudioFontLoader = require('./loader');
 var WebAudioFontChannel = require('./channel');
 var WebAudioFontReverberator = require('./reverberator')
@@ -1671,11 +1682,15 @@ function WebAudioFontPlayer() {
 		}
 	};
 	this.queueSnap = function (audioContext, target, preset, when, pitches, duration, volume, slides) {
-		volume = 1.5 * (volume | 1.0);
+		volume = 1.5 * (volume || 1.0);
 		duration = 0.05;
 		this.queueChord(audioContext, target, preset, when, pitches, duration, volume, slides);
 	};
 	this.queueWaveTable = function (audioContext, target, preset, when, pitch, duration, volume, slides) {
+		if (audioContext.state == 'suspended') {
+			console.log('audioContext.resume');
+			audioContext.resume();
+		}
 		if (volume) {
 			volume = 1.0 * volume;
 		} else {
@@ -1706,7 +1721,7 @@ function WebAudioFontPlayer() {
 		var envelope = this.findEnvelope(audioContext, target, startWhen, waveDuration);
 		this.setupEnvelope(audioContext, envelope, zone, volume, startWhen, waveDuration, duration);
 		envelope.audioBufferSourceNode = audioContext.createBufferSource();
-		envelope.audioBufferSourceNode.playbackRate.setValueAtTime(playbackRate,0);
+		envelope.audioBufferSourceNode.playbackRate.setValueAtTime(playbackRate, 0);
 		if (slides) {
 			if (slides.length > 0) {
 				envelope.audioBufferSourceNode.playbackRate.setValueAtTime(playbackRate, when);
@@ -1805,7 +1820,7 @@ function WebAudioFontPlayer() {
 		var envelope = null;
 		for (var i = 0; i < this.envelopes.length; i++) {
 			var e = this.envelopes[i];
-			if (e.target == target && audioContext.currentTime > e.when + e.duration + 0.1) {
+			if (e.target == target && audioContext.currentTime > e.when + e.duration + 0.001) {
 				try {
 					e.audioBufferSourceNode.disconnect();
 					e.audioBufferSourceNode.stop(0);
@@ -1983,11 +1998,14 @@ var player = new WebAudioFontPlayer();
 
 var instr = null;
 
-var loadInstrument = function loadInstrument(url) {
+var loadInstrument = async function loadInstrument(url) {
   var name = '_tone_' + path.basename(url, '.js');
   player.loader.startLoad(audioContext, url, name);
-  player.loader.waitLoad(function () {
-    return instr = window[name];
+  return new Promise(function (resolve, reject) {
+    player.loader.waitLoad(function () {
+      instr = window[name];
+      resolve(instr);
+    });
   });
 };
 
@@ -2051,7 +2069,8 @@ var audio = require('./audio');
 var melodies = require('./melodies');
 
 var state = {
-  lang: 'en_us',
+  lang: null,
+  mode: 0,
   falling: [],
   maxLives: 5,
   lives: 0,
@@ -2061,12 +2080,15 @@ var state = {
   pause: false,
   speed: 1,
   lastTime: 0,
-  showKeyboard: true,
+  showKeyboard: 'hidden',
+  melody: 'beethoven',
   dom: {
     setup: document.querySelector('.setup'),
     start: document.querySelector('.start_btn'),
     layout_sel: document.querySelector('.layout_sel'),
-    show_keyboard: document.querySelector('.show_keyboard'),
+    mode_sel: document.querySelector('.mode_sel'),
+    melody_sel: document.querySelector('.melody_sel'),
+    keyboard_sel: document.querySelector('.keyboard_sel'),
     scene: document.querySelector('.scene'),
     score: document.querySelector('.score_value'),
     lives: document.querySelector('.lives'),
@@ -2118,10 +2140,12 @@ var showError = function showError(key) {
 };
 
 var spawn = function spawn(text) {
+  var x = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : -1;
+
   var element = document.createElement('div');
   element.appendChild(document.createTextNode(text));
   element.className = 'entity';
-  var x = utils.getRandom(20, window.innerWidth - 40);
+  x = x > -1 ? x : utils.getRandom(20, window.innerWidth - 40);
   element.style.left = x + 'px';
   state.dom.scene.appendChild(element);
   state.falling.push({ text: text, element: element, y: 0 });
@@ -2148,7 +2172,7 @@ var update = function update(time) {
     var _iteratorError = undefined;
 
     try {
-      for (var _iterator = langs[state.lang].modes[2].sets[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+      for (var _iterator = langs[state.lang].modes[state.mode].sets[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
         var set = _step.value;
 
         l = l.concat(langs[state.lang].sets[set]);
@@ -2169,7 +2193,9 @@ var update = function update(time) {
     }
 
     var _i = utils.getRandom(0, l.length - 1);
-    spawn(l[_i]);
+    var code = utils.mapKeyToCode(state.lang, l[_i]);
+    var x = utils.keyPositions[code];
+    spawn(l[_i], x * (window.innerWidth - 40) + 20);
     state.lastTime = time;
   }
 
@@ -2207,9 +2233,18 @@ var checkKey = function checkKey(key, done) {
 };
 
 var showKeyboard = function showKeyboard(value) {
-  state.showKeyboard = value;
   if (state.dom.keyboard) {
-    state.dom.keyboard.style.display = value ? 'block' : 'none';
+    if (value == 'left') {
+      state.dom.keyboard.style.left = '0';
+      state.dom.keyboard.style.right = 'auto';
+      state.dom.keyboard.style.display = 'block';
+    } else if (value == 'right') {
+      state.dom.keyboard.style.right = '0';
+      state.dom.keyboard.style.left = 'auto';
+      state.dom.keyboard.style.display = 'block';
+    } else {
+      state.dom.keyboard.style.display = 'none';
+    }
   }
 };
 
@@ -2222,39 +2257,83 @@ var renderKeyboard = function renderKeyboard(lang) {
   showKeyboard(state.showKeyboard);
 };
 
-var main = async function main() {
-  await audio.loadInstrument('https://surikov.github.io/webaudiofontdata/sound/0800_SBLive_sf2.js');
-  var playScore = audio.createPlayScore(melodies.korobeiniki);
+var updateLayoutSelection = function updateLayoutSelection(selectedLang) {
+  state.dom.layout_sel.innerHTML = '';
+  for (var l in langs) {
+    var opt = new Option(langs[l].label, l, null, selectedLang === l);
+    state.dom.layout_sel.appendChild(opt);
+  }
+};
 
+var updateModeSelection = function updateModeSelection(lang, selectedMode) {
+  state.dom.mode_sel.innerHTML = '';
+  for (var i in langs[lang].modes) {
+    var opt = new Option(langs[lang].modes[i].label, i, null, selectedMode === i);
+    state.dom.mode_sel.appendChild(opt);
+  }
+};
+
+var updateMelodySelection = function updateMelodySelection(selectedMelody) {
+  state.dom.melody_sel.innerHTML = '';
+  for (var m in melodies) {
+    var opt = new Option(melodies[m].label, m, null, selectedMelody === m);
+    state.dom.melody_sel.appendChild(opt);
+  }
+};
+
+var main = async function main() {
   updateLives(state.maxLives);
 
+  // Language
+  state.lang = localStorage.getItem('lang') || Object.keys(langs)[0];
+  updateLayoutSelection(state.lang);
+
+  // Mode
+  state.mode = localStorage.getItem('mode') || 0;
+  updateModeSelection(state.lang, state.mode);
+
+  // Melody
+  state.melody = localStorage.getItem('melody') || Object.keys(melodies)[0];
+  updateMelodySelection(state.melody);
+  var playScore = audio.createPlayScore(melodies[state.melody].voices);
+
+  // Keyboard
+  state.showKeyboard = localStorage.getItem('keyboard') || 'hide';
+  state.dom.keyboard_sel.value = state.showKeyboard;
+  renderKeyboard(state.lang);
+
+  await audio.loadInstrument(melodies[state.melody].instrument);
   state.dom.start.addEventListener('click', start);
+
   state.dom.layout_sel.addEventListener('change', function (ev) {
     state.lang = state.dom.layout_sel.value;
-    renderKeyboard(state.lang);
+    state.mode = 0;
     localStorage.setItem('lang', state.lang);
+    localStorage.setItem('mode', state.mode);
+    updateModeSelection(state.lang, 0);
+    renderKeyboard(state.lang);
   });
 
-  state.dom.show_keyboard.addEventListener('change', function (ev) {
-    state.showKeyboard = state.dom.show_keyboard.checked;
+  state.dom.mode_sel.addEventListener('change', function (ev) {
+    state.mode = parseInt(state.dom.mode_sel.value);
+    localStorage.setItem('mode', state.mode);
+  });
+
+  state.dom.melody_sel.addEventListener('change', function (ev) {
+    state.melody = state.dom.melody_sel.value;
+    localStorage.setItem('melody', state.melody);
+    state.dom.start.disabled = true;
+    audio.loadInstrument(melodies[state.melody].instrument).then(function () {
+      playScore = audio.createPlayScore(melodies[state.melody].voices);
+      state.dom.start.disabled = false;
+    });
+  });
+
+  state.dom.keyboard_sel.addEventListener('change', function (ev) {
+    state.showKeyboard = state.dom.keyboard_sel.value;
+    localStorage.setItem('keyboard', state.showKeyboard);
     showKeyboard(state.showKeyboard);
-    localStorage.setItem('show_keyboard', state.showKeyboard ? 'show' : 'hide');
   });
-
-  var lang = localStorage.getItem('lang');
-  if (lang) {
-    state.lang = lang;
-    state.dom.layout_sel.value = lang;
-  }
-
-  var show = localStorage.getItem('show_keyboard');
-  if (typeof show === 'string') {
-    showKeyboard(show === 'show');
-  } else {
-    showKeyboard(state.dom.show_keyboard.checked);
-  }
-
-  renderKeyboard(state.lang);
 
   document.addEventListener('keydown', function (ev) {
     if (state.gameOver && ev.key === ' ') return restart();
@@ -2292,8 +2371,27 @@ var main = async function main() {
 
 main().catch(console.error);
 
-},{"./audio":14,"./languages":20,"./melodies":33,"./style.css":36,"./utils":37,"query-string":8}],16:[function(require,module,exports){
+},{"./audio":14,"./languages":21,"./melodies":35,"./style.css":38,"./utils":39,"query-string":8}],16:[function(require,module,exports){
+'use strict';
+
+var rows = [["Backquote", "Digit1", "Digit2", "Digit3", "Digit4", "Digit5", "Digit6", "Digit7", "Digit8", "Digit9", "Digit0", "Minus", "Equal"], ["KeyQ", "KeyW", "KeyE", "KeyR", "KeyT", "KeyY", "KeyU", "KeyI", "KeyO", "KeyP", "BracketLeft", "BracketRight", "Backslash"], ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG', 'KeyH', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon', 'Quote'], ['KeyZ', 'KeyX', 'KeyC', 'KeyV', 'KeyB', 'KeyN', 'KeyM', 'Comma', 'Period', 'Slash']];
+
+var positions = {};
+
+var unit = 1 / 14.4;
+var offsets = [0, unit * 1.7, unit * 2, unit * 2.4];
+
+for (var r in rows) {
+  for (var i in rows[r]) {
+    positions[rows[r][i]] = offsets[r] + i * unit;
+  }
+}
+
+module.exports = positions;
+
+},{}],17:[function(require,module,exports){
 module.exports={
+	"label": "German",
 	"sets": {
 		"consonants": [
 			"B",
@@ -2345,7 +2443,7 @@ module.exports={
 			]
 		},
 		{
-			"label": "All letters",
+			"label": "All Letters",
 			"sets": [
 				"consonants",
 				"vowels"
@@ -2354,8 +2452,9 @@ module.exports={
 	]
 }
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 module.exports={
+	"label": "English (U.K.)",
 	"sets": {
 		"consonants": [
 			"B",
@@ -2402,7 +2501,7 @@ module.exports={
 			]
 		},
 		{
-			"label": "All letters",
+			"label": "All Letters",
 			"sets": [
 				"consonants",
 				"vowels"
@@ -2411,10 +2510,67 @@ module.exports={
 	]
 }
 
-},{}],18:[function(require,module,exports){
-arguments[4][17][0].apply(exports,arguments)
-},{"dup":17}],19:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 module.exports={
+	"label": "English (U.S.)",
+	"sets": {
+		"consonants": [
+			"B",
+			"C",
+			"D",
+			"F",
+			"G",
+			"H",
+			"J",
+			"K",
+			"L",
+			"M",
+			"N",
+			"P",
+			"Q",
+			"R",
+			"S",
+			"T",
+			"V",
+			"W",
+			"X",
+			"Z"
+		],
+		"vowels": [
+			"A",
+			"E",
+			"I",
+			"O",
+			"U",
+			"Y"
+		]
+	},
+	"modes": [
+		{
+			"label": "Consonants Only",
+			"sets": [
+				"consonants"
+			]
+		},
+		{
+			"label": "Vowels Only",
+			"sets": [
+				"vowels"
+			]
+		},
+		{
+			"label": "All Letters",
+			"sets": [
+				"consonants",
+				"vowels"
+			]
+		}
+	]
+}
+
+},{}],20:[function(require,module,exports){
+module.exports={
+	"label": "Spanish",
 	"sets": {
 		"consonants": [
 			"B",
@@ -2462,7 +2618,7 @@ module.exports={
 			]
 		},
 		{
-			"label": "All letters",
+			"label": "All Letters",
 			"sets": [
 				"consonants",
 				"vowels"
@@ -2471,22 +2627,23 @@ module.exports={
 	]
 }
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 'use strict';
 
 module.exports = {
-  de_de: require('./de-de'),
-  en_gb: require('./en-gb'),
   en_us: require('./en-us'),
+  en_gb: require('./en-gb'),
+  de_de: require('./de-de'),
   es_es: require('./es-es'),
   // jp:    require('./jp'   ),
   ko: require('./ko'),
-  // ru:    require('./ru'   ),
+  ru: require('./ru'),
   zh_tw: require('./zh-tw')
 };
 
-},{"./de-de":16,"./en-gb":17,"./en-us":18,"./es-es":19,"./ko":21,"./zh-tw":22}],21:[function(require,module,exports){
+},{"./de-de":17,"./en-gb":18,"./en-us":19,"./es-es":20,"./ko":22,"./ru":23,"./zh-tw":24}],22:[function(require,module,exports){
 module.exports={
+	"label": "Korean",
 	"sets": {
 		"consonants": [
 			"ㅂ",
@@ -2540,7 +2697,7 @@ module.exports={
 			]
 		},
 		{
-			"label": "All letters",
+			"label": "All Letters",
 			"sets": [
 				"consonants",
 				"vowels"
@@ -2549,8 +2706,59 @@ module.exports={
 	]
 }
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 module.exports={
+	"label": "Russian",
+	"sets": {
+		"all": [
+			"Й",
+			"Ц",
+			"У",
+			"К",
+			"Е",
+			"Н",
+			"Г",
+			"Ш",
+			"Щ",
+			"З",
+			"Х",
+			"Ъ",
+			"Ё",
+			"Ф",
+			"Ы",
+			"В",
+			"А",
+			"П",
+			"Р",
+			"О",
+			"Л",
+			"Д",
+			"Ж",
+			"Э",
+			"Я",
+			"Ч",
+			"С",
+			"М",
+			"И",
+			"Т",
+			"Ь",
+			"Б",
+			"Ю"
+		]
+	},
+	"modes": [
+		{
+			"label": "All Letters",
+			"sets": [
+				"all"
+			]
+		}
+	]
+}
+
+},{}],24:[function(require,module,exports){
+module.exports={
+	"label": "Chinese (Zhuyin)",
 	"sets": {
 		"initials": [
 			"ㄅ",
@@ -2602,7 +2810,7 @@ module.exports={
 			]
 		},
 		{
-			"label": "All letters",
+			"label": "All Letters",
 			"sets": [
 				"initials",
 				"finals"
@@ -2611,7 +2819,7 @@ module.exports={
 	]
 }
 
-},{}],23:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "<",
@@ -2676,7 +2884,7 @@ module.exports={
   }
 }
 
-},{}],24:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "`",
@@ -2790,7 +2998,7 @@ module.exports={
   }
 }
 
-},{}],25:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "`",
@@ -2904,7 +3112,7 @@ module.exports={
   }
 }
 
-},{}],26:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "<",
@@ -2950,7 +3158,7 @@ module.exports={
   "Slash": "ç"
 }
 
-},{}],27:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 'use strict';
 
 var en_us = require('./en-us');
@@ -2966,7 +3174,7 @@ module.exports = {
   zh_tw: Object.assign({}, en_us, require('./zh-tw'))
 };
 
-},{"./de-de":23,"./en-gb":24,"./en-us":25,"./es-es":26,"./jp":28,"./ko":29,"./ru":30,"./zh-tw":31}],28:[function(require,module,exports){
+},{"./de-de":25,"./en-gb":26,"./en-us":27,"./es-es":28,"./jp":30,"./ko":31,"./ru":32,"./zh-tw":33}],30:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "₩",
@@ -3021,11 +3229,78 @@ module.exports={
   "KeyM": "ㅡ"
 }
 
-},{}],29:[function(require,module,exports){
-arguments[4][28][0].apply(exports,arguments)
-},{"dup":28}],30:[function(require,module,exports){
-arguments[4][28][0].apply(exports,arguments)
-},{"dup":28}],31:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
+arguments[4][30][0].apply(exports,arguments)
+},{"dup":30}],32:[function(require,module,exports){
+module.exports={
+  "Backquote": {
+    "default": "]",
+    "shift": "["
+  },
+  "Digit2": {
+    "default": "2",
+    "shift": "\""
+  },
+  "Digit3": {
+    "default": "3",
+    "shift": "№"
+  },
+  "Digit4": {
+    "default": "4",
+    "shift": "%"
+  },
+  "Digit5": {
+    "default": "5",
+    "shift": ":"
+  },
+  "Digit6": {
+    "default": "6",
+    "shift": ","
+  },
+  "Digit7": {
+    "default": "7",
+    "shift": "."
+  },
+  "Digit8": {
+    "default": "8",
+    "shift": ";"
+  },
+  "KeyQ": "й",
+  "KeyW": "ц",
+  "KeyE": "у",
+  "KeyR": "к",
+  "KeyT": "е",
+  "KeyY": "н",
+  "KeyU": "г",
+  "KeyI": "ш",
+  "KeyO": "щ",
+  "KeyP": "з",
+  "BracketLeft": "х",
+  "BracketRight": "ъ",
+  "Backslash": "ё",
+  "KeyA": "ф",
+  "KeyS": "ы",
+  "KeyD": "в",
+  "KeyF": "а",
+  "KeyG": "п",
+  "KeyH": "р",
+  "KeyJ": "о",
+  "KeyK": "л",
+  "KeyL": "д",
+  "Semicolon": "ж",
+  "Quote": "э",
+  "KeyZ": "я",
+  "KeyX": "ч",
+  "KeyC": "с",
+  "KeyV": "м",
+  "KeyB": "и",
+  "KeyN": "т",
+  "KeyM": "ь",
+  "Comma": "б",
+  "Period": "ю"
+}
+
+},{}],33:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "·",
@@ -3209,7 +3484,7 @@ module.exports={
   }
 }
 
-},{}],32:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 'use strict';
 
 var scale = {
@@ -3239,9 +3514,13 @@ var voices = [{
     notes: [scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.c, scale.c, scale.g - 12, scale.g - 12, scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.g - 12, scale.c, scale.e - 12, scale.g - 12, scale.c, scale.d, scale.c, scale.e - 12, scale.g - 12, scale.c, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.g - 12, scale.g - 24, scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.c, scale.g - 12, scale.e - 12, scale.e - 12]
 }];
 
-module.exports = voices;
+module.exports = {
+    voices: voices,
+    label: 'Beethoven',
+    instrument: 'https://surikov.github.io/webaudiofontdata/sound/0000_JCLive_sf2_file.js'
+};
 
-},{}],33:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -3249,7 +3528,7 @@ module.exports = {
   korobeiniki: require('./korobeiniki')
 };
 
-},{"./beethoven":32,"./korobeiniki":34}],34:[function(require,module,exports){
+},{"./beethoven":34,"./korobeiniki":36}],36:[function(require,module,exports){
 'use strict';
 
 var scale = {
@@ -3361,9 +3640,13 @@ var voices = [{
     scale.gis - 2 * 12, scale.e - 1 * 12, scale.gis - 1 * 12, scale.gis - 2 * 12]
 }];
 
-module.exports = voices;
+module.exports = {
+    voices: voices,
+    label: 'Korobeiniki',
+    instrument: 'https://surikov.github.io/webaudiofontdata/sound/0800_SBLive_sf2.js'
+};
 
-},{}],35:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 'use strict';
 
 var _templateObject = _taggedTemplateLiteral(['\n    <div class="keyboard">\n      <div class="row">\n        <div class="key Backquote">', '</div>\n        <div class="key Digit1">', '</div>\n        <div class="key Digit2">', '</div>\n        <div class="key Digit3">', '</div>\n        <div class="key Digit4">', '</div>\n        <div class="key Digit5">', '</div>\n        <div class="key Digit6">', '</div>\n        <div class="key Digit7">', '</div>\n        <div class="key Digit8">', '</div>\n        <div class="key Digit9">', '</div>\n        <div class="key Digit0">', '</div>\n        <div class="key Minus">', '</div>\n        <div class="key Equal">', '</div>\n        <div class="key Backspace">\u2421</div>\n      </div>\n      <div class="row">\n        <div class="key Tab">\u21B9</div>\n        <div class="key KeyQ">', '</div>\n        <div class="key KeyW">', '</div>\n        <div class="key KeyE">', '</div>\n        <div class="key KeyR">', '</div>\n        <div class="key KeyT">', '</div>\n        <div class="key KeyY">', '</div>\n        <div class="key KeyU">', '</div>\n        <div class="key KeyI">', '</div>\n        <div class="key KeyO">', '</div>\n        <div class="key KeyP">', '</div>\n        <div class="key BracketLeft">', '</div>\n        <div class="key BracketRight">', '</div>\n        <div class="key Backslash">', '</div>\n      </div>\n      <div class="row">\n        <div class="key CapsLock">\u21EA</div>\n        <div class="key KeyA">', '</div>\n        <div class="key KeyS">', '</div>\n        <div class="key KeyD">', '</div>\n        <div class="key KeyF">', '</div>\n        <div class="key KeyG">', '</div>\n        <div class="key KeyH">', '</div>\n        <div class="key KeyJ">', '</div>\n        <div class="key KeyK">', '</div>\n        <div class="key KeyL">', '</div>\n        <div class="key Semicolon">', '</div>\n        <div class="key Quote">', '</div>\n        <div class="key Enter">\u23CE</div>\n      </div>\n      <div class="row">\n        <div class="key Shift">\u21E7</div>\n        <div class="key KeyZ">', '</div>\n        <div class="key KeyX">', '</div>\n        <div class="key KeyC">', '</div>\n        <div class="key KeyV">', '</div>\n        <div class="key KeyB">', '</div>\n        <div class="key KeyN">', '</div>\n        <div class="key KeyM">', '</div>\n        <div class="key Comma">', '</div>\n        <div class="key Period">', '</div>\n        <div class="key Slash">', '</div>\n        <div class="key Shift">\u21E7</div>\n      </div>\n    </div>\n  '], ['\n    <div class="keyboard">\n      <div class="row">\n        <div class="key Backquote">', '</div>\n        <div class="key Digit1">', '</div>\n        <div class="key Digit2">', '</div>\n        <div class="key Digit3">', '</div>\n        <div class="key Digit4">', '</div>\n        <div class="key Digit5">', '</div>\n        <div class="key Digit6">', '</div>\n        <div class="key Digit7">', '</div>\n        <div class="key Digit8">', '</div>\n        <div class="key Digit9">', '</div>\n        <div class="key Digit0">', '</div>\n        <div class="key Minus">', '</div>\n        <div class="key Equal">', '</div>\n        <div class="key Backspace">\u2421</div>\n      </div>\n      <div class="row">\n        <div class="key Tab">\u21B9</div>\n        <div class="key KeyQ">', '</div>\n        <div class="key KeyW">', '</div>\n        <div class="key KeyE">', '</div>\n        <div class="key KeyR">', '</div>\n        <div class="key KeyT">', '</div>\n        <div class="key KeyY">', '</div>\n        <div class="key KeyU">', '</div>\n        <div class="key KeyI">', '</div>\n        <div class="key KeyO">', '</div>\n        <div class="key KeyP">', '</div>\n        <div class="key BracketLeft">', '</div>\n        <div class="key BracketRight">', '</div>\n        <div class="key Backslash">', '</div>\n      </div>\n      <div class="row">\n        <div class="key CapsLock">\u21EA</div>\n        <div class="key KeyA">', '</div>\n        <div class="key KeyS">', '</div>\n        <div class="key KeyD">', '</div>\n        <div class="key KeyF">', '</div>\n        <div class="key KeyG">', '</div>\n        <div class="key KeyH">', '</div>\n        <div class="key KeyJ">', '</div>\n        <div class="key KeyK">', '</div>\n        <div class="key KeyL">', '</div>\n        <div class="key Semicolon">', '</div>\n        <div class="key Quote">', '</div>\n        <div class="key Enter">\u23CE</div>\n      </div>\n      <div class="row">\n        <div class="key Shift">\u21E7</div>\n        <div class="key KeyZ">', '</div>\n        <div class="key KeyX">', '</div>\n        <div class="key KeyC">', '</div>\n        <div class="key KeyV">', '</div>\n        <div class="key KeyB">', '</div>\n        <div class="key KeyN">', '</div>\n        <div class="key KeyM">', '</div>\n        <div class="key Comma">', '</div>\n        <div class="key Period">', '</div>\n        <div class="key Slash">', '</div>\n        <div class="key Shift">\u21E7</div>\n      </div>\n    </div>\n  ']);
@@ -3376,13 +3659,14 @@ module.exports = function (map) {
   return bel(_templateObject, map('Backquote'), map('Digit1'), map('Digit2'), map('Digit3'), map('Digit4'), map('Digit5'), map('Digit6'), map('Digit7'), map('Digit8'), map('Digit9'), map('Digit0'), map('Minus'), map('Equal'), map('KeyQ'), map('KeyW'), map('KeyE'), map('KeyR'), map('KeyT'), map('KeyY'), map('KeyU'), map('KeyI'), map('KeyO'), map('KeyP'), map('BracketLeft'), map('BracketRight'), map('Backslash'), map('KeyA'), map('KeyS'), map('KeyD'), map('KeyF'), map('KeyG'), map('KeyH'), map('KeyJ'), map('KeyK'), map('KeyL'), map('Semicolon'), map('Quote'), map('KeyZ'), map('KeyX'), map('KeyC'), map('KeyV'), map('KeyB'), map('KeyN'), map('KeyM'), map('Comma'), map('Period'), map('Slash'));
 };
 
-},{"bel":2}],36:[function(require,module,exports){
+},{"bel":2}],38:[function(require,module,exports){
 
-},{}],37:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 'use strict';
 
 var layouts = require('./layouts');
 var _renderKeyboard = require('./render-keyboard');
+var keyPositions = require('./key-positions');
 
 var mapKeyCode = function mapKeyCode(layout) {
   return function (code, shift) {
@@ -3398,7 +3682,7 @@ var mapKeyCode = function mapKeyCode(layout) {
 
 var mapKeyEvent = function mapKeyEvent(layout) {
   return function (ev) {
-    if (ev.code === 'Quote' || ev.code === 'Slash') ev.preventDefault(); // Firefox Quicks find
+    if (ev.code === 'Quote' || ev.code === 'Slash') ev.preventDefault(); // Firefox Quick find
     return mapKeyCode(layout)(ev.code, ev.shiftKey);
   };
 };
@@ -3407,9 +3691,25 @@ for (var key in layouts) {
   mapKeyEvent[key] = mapKeyEvent(layouts[key]);
 }
 
+var mapKeyToCode = function mapKeyToCode(lang, key) {
+  var layout = layouts[lang];
+  key = key.toLowerCase();
+  for (var code in layout) {
+    if (typeof layout[code] === 'string' && layout[code].toLowerCase() === key) {
+      return code;
+    } else if (typeof layout[code].default === 'string' && layout[code].default.toLowerCase() === key) {
+      return code;
+    } else if (typeof layout[code].shift === 'string' && layout[code].shift.toLowerCase() === key) {
+      return code;
+    }
+  }
+};
+
 module.exports = {
   mapKeyCode: mapKeyCode,
   mapKeyEvent: mapKeyEvent,
+  mapKeyToCode: mapKeyToCode,
+  keyPositions: keyPositions,
   layouts: layouts,
   renderKeyboard: function renderKeyboard(layout) {
     return _renderKeyboard(mapKeyCode(layout));
@@ -3419,4 +3719,4 @@ module.exports = {
   }
 };
 
-},{"./layouts":27,"./render-keyboard":35}]},{},[15]);
+},{"./key-positions":16,"./layouts":29,"./render-keyboard":37}]},{},[15]);
