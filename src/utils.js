@@ -28,11 +28,11 @@ const mapKeyToCode = (lang, key) => {
   key = key.toLowerCase()
   for (const code in layout) {
     if (typeof layout[code] === 'string' && layout[code].toLowerCase() === key) {
-      return code
+      return { code, shift: false }
     } else if (typeof layout[code].default === 'string' && layout[code].default.toLowerCase() === key) {
-     return code 
+      return { code, shift: false }
     } else if (typeof layout[code].shift === 'string' && layout[code].shift.toLowerCase() === key) {
-      return code
+      return { code, shift: true }
     }
   }
 }

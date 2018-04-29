@@ -122,6 +122,10 @@ body {
   font-size: 2em;
 }
 
+.entity.shift {
+  color: tomato;
+}
+
 .error {
   background: rgba(255, 0, 0, 0.6);
   position: fixed;

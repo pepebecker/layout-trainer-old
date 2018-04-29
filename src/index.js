@@ -79,10 +79,11 @@ const showError = key => {
   }, 200)
 }
 
-const spawn = (text, x = -1) => {
+const spawn = (text, shift, x = -1) => {
   const element = document.createElement('div')
   element.appendChild(document.createTextNode(text))
   element.className = 'entity'
+  if (shift) element.classList.add('shift')
   x = (x > -1 ? x : utils.getRandom(20, window.innerWidth - 40))
   element.style.left = x + 'px'
   state.dom.scene.appendChild(element)
@@ -109,9 +110,9 @@ const update = time => {
       l = l.concat(langs[state.lang].sets[set])
     }
     const i = utils.getRandom(0, l.length - 1)
-    const code = utils.mapKeyToCode(state.lang, l[i])
+    const { code, shift } = utils.mapKeyToCode(state.lang, l[i])
     const x = utils.keyPositions[code]
-    spawn(l[i], x * (window.innerWidth - 40) + 20)
+    spawn(l[i], shift, x * (window.innerWidth - 40) + 20)
     state.lastTime = time
   }
 
@@ -136,16 +137,19 @@ const restart = () => {
   start()
 }
 
-const checkKey = (key, done) => {
+const removeKey = index => {
+  state.dom.scene.removeChild(state.falling[index].element)
+  state.falling.splice(index, 1)
+}
+
+const checkKey = key => {
   for (let i = 0; i < state.falling.length; i++) {
     if (state.falling[i].text === key) {
-      state.dom.scene.removeChild(state.falling[i].element)
-      state.falling.splice(i, 1)
-      done(true)
-      return
+      removeKey(i)
+      return true
     }
   }
-  done(false)
+  return false
 }
 
 const showKeyboard = value => {
@@ -270,19 +274,16 @@ const main = async () => {
 
     const key = utils.mapKeyEvent[state.lang](ev)
     if (!key) return
-    console.log(key)
 
-    checkKey(key, correct => {
-      if (correct) {
-        playScore(state.score)
-        updateScore(state.score + 1)
-        state.speed *= 1.0025
-      } else {
-        updateLives(state.lives - 1)
-        showError(key)
-        audio.play(state.audio.wrong)
-      }
-    })
+    if (checkKey(key)) {
+      playScore(state.score)
+      updateScore(state.score + 1)
+      state.speed *= 1.0025
+    } else {
+      updateLives(state.lives - 1)
+      showError(key)
+      audio.play(state.audio.wrong)
+    }
   })
 }
 
