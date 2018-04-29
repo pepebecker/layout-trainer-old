@@ -79,11 +79,11 @@ const showError = key => {
   }, 200)
 }
 
-const spawn = text => {
+const spawn = (text, x = -1) => {
   const element = document.createElement('div')
   element.appendChild(document.createTextNode(text))
   element.className = 'entity'
-  const x = utils.getRandom(20, window.innerWidth - 40)
+  x = (x > -1 ? x : utils.getRandom(20, window.innerWidth - 40))
   element.style.left = x + 'px'
   state.dom.scene.appendChild(element)
   state.falling.push({ text, element, y: 0 })
@@ -109,7 +109,9 @@ const update = time => {
       l = l.concat(langs[state.lang].sets[set])
     }
     const i = utils.getRandom(0, l.length - 1)
-    spawn(l[i])
+    const code = utils.mapKeyToCode(state.lang, l[i])
+    const x = utils.keyPositions[code]
+    spawn(l[i], x * (window.innerWidth - 40) + 20)
     state.lastTime = time
   }
 
