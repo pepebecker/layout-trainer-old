@@ -1,53 +1,67 @@
 {
   "Backquote": {
-    "default": "₩",
-    "shift": "~"
+    "default": "]",
+    "shift": "["
   },
-  "KeyQ": {
-    "default": "ㅂ",
-    "shift": "ㅃ"
+  "Digit2": {
+    "default": "2",
+    "shift": "\""
   },
-  "KeyW": {
-    "default": "ㅈ",
-    "shift": "ㅉ"
+  "Digit3": {
+    "default": "3",
+    "shift": "№"
   },
-  "KeyE": {
-    "default": "ㄷ",
-    "shift": "ㄸ"
+  "Digit4": {
+    "default": "4",
+    "shift": "%"
   },
-  "KeyR": {
-    "default": "ㄱ",
-    "shift": "ㄲ"
+  "Digit5": {
+    "default": "5",
+    "shift": ":"
   },
-  "KeyT": {
-    "default": "ㅅ",
-    "shift": "ㅆ"
+  "Digit6": {
+    "default": "6",
+    "shift": ","
   },
-  "KeyY": "ㅛ",
-  "KeyU": "ㅕ",
-  "KeyI": "ㅑ",
-  "KeyO": {
-    "default": "ㅐ",
-    "shift": "ㅒ"
+  "Digit7": {
+    "default": "7",
+    "shift": "."
   },
-  "KeyP": {
-    "default": "ㅔ",
-    "shift": "ㅖ"
+  "Digit8": {
+    "default": "8",
+    "shift": ";"
   },
-  "KeyA": "ㅁ",
-  "KeyS": "ㄴ",
-  "KeyD": "ㅇ",
-  "KeyF": "ㄹ",
-  "KeyG": "ㅎ",
-  "KeyH": "ㅗ",
-  "KeyJ": "ㅓ",
-  "KeyK": "ㅏ",
-  "KeyL": "ㅣ",
-  "KeyZ": "ㅋ",
-  "KeyX": "ㅌ",
-  "KeyC": "ㅊ",
-  "KeyV": "ㅍ",
-  "KeyB": "ㅠ",
-  "KeyN": "ㅜ",
-  "KeyM": "ㅡ"
+  "KeyQ": "й",
+  "KeyW": "ц",
+  "KeyE": "у",
+  "KeyR": "к",
+  "KeyT": "е",
+  "KeyY": "н",
+  "KeyU": "г",
+  "KeyI": "ш",
+  "KeyO": "щ",
+  "KeyP": "з",
+  "BracketLeft": "х",
+  "BracketRight": "ъ",
+  "Backslash": "ё",
+  "KeyA": "ф",
+  "KeyS": "ы",
+  "KeyD": "в",
+  "KeyF": "а",
+  "KeyG": "п",
+  "KeyH": "р",
+  "KeyJ": "о",
+  "KeyK": "л",
+  "KeyL": "д",
+  "Semicolon": "ж",
+  "Quote": "э",
+  "KeyZ": "я",
+  "KeyX": "ч",
+  "KeyC": "с",
+  "KeyV": "м",
+  "KeyB": "и",
+  "KeyN": "т",
+  "KeyM": "ь",
+  "Comma": "б",
+  "Period": "ю"
 }
