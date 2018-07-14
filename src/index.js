@@ -82,6 +82,7 @@ const showError = key => {
 }
 
 const spawn = (text, shift, x = -1) => {
+  const multiplier = Math.random() * 0.6 + 0.8
   const element = document.createElement('div')
   element.appendChild(document.createTextNode(text))
   element.className = 'entity'
@@ -89,14 +90,14 @@ const spawn = (text, shift, x = -1) => {
   x = (x > -1 ? x : utils.getRandom(20, window.innerWidth - 40))
   element.style.left = x + 'px'
   state.dom.scene.appendChild(element)
-  state.falling.push({ text, element, y: 0 })
+  state.falling.push({ text, element, y: 0, speed: state.speed * multiplier })
 }
 
 const update = time => {
   if (state.pause || state.gameOver) return
 
   for (const i in state.falling) {
-    state.falling[i].y += state.speed / 2
+    state.falling[i].y += state.falling[i].speed
     state.falling[i].element.style.top = state.falling[i].y + 'px'
 
     if (state.falling[i].y > window.innerHeight) {
@@ -106,7 +107,7 @@ const update = time => {
     }
   }
 
-  if (time > state.lastTime + (2000 / state.speed)) {
+  if (time > state.lastTime + (1000 / state.speed)) {
     let l = []
     for (let set of langs[state.lang].modes[state.mode].sets) {
       l = l.concat(langs[state.lang].sets[set])
