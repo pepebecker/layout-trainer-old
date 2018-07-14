@@ -2081,6 +2081,7 @@ var state = {
   speed: 1,
   // difficulty: 1,
   lastTime: 0,
+  sandbox: false,
   showKeyboard: 'hidden',
   melody: 'beethoven',
   dom: {
@@ -2165,7 +2166,7 @@ var update = function update(time) {
     if (state.falling[i].y > window.innerHeight) {
       state.dom.scene.removeChild(state.falling[i].element);
       state.falling.splice(i, 1);
-      updateLives(state.lives - 1);
+      if (!state.sandbox) updateLives(state.lives - 1);
     }
   }
 
@@ -2383,7 +2384,7 @@ var main = async function main() {
     var key = utils.mapKeyEvent[state.lang](ev);
     if (!key) return;
 
-    if (checkKey(key)) {
+    if (checkKey(key) || state.sandbox) {
       playScore(state.score);
       updateScore(state.score + 1);
       // state.speed *= (1 + (0.003 * state.difficulty))
