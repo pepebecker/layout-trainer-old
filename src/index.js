@@ -19,7 +19,7 @@ const state = {
   started: false,
   pause: false,
   speed: 1,
-  difficulty: 1,
+  // difficulty: 1,
   lastTime: 0,
   showKeyboard: 'hidden',
   melody: 'beethoven',
@@ -30,7 +30,7 @@ const state = {
     mode_sel: document.querySelector('.mode_sel'),
     melody_sel: document.querySelector('.melody_sel'),
     keyboard_sel: document.querySelector('.keyboard_sel'),
-    difficulty_sel: document.querySelector('.difficulty_sel'),
+    // difficulty_sel: document.querySelector('.difficulty_sel'),
     scene: document.querySelector('.scene'),
     score: document.querySelector('.score_value'),
     lives: document.querySelector('.lives'),
@@ -232,8 +232,8 @@ const main = async () => {
   renderKeyboard(state.lang)
 
   // Difficulty
-  state.difficulty = parseInt(localStorage.getItem('difficulty') || 1)
-  state.dom.difficulty_sel.value = state.difficulty
+  // state.difficulty = parseInt(localStorage.getItem('difficulty') || 1)
+  // state.dom.difficulty_sel.value = state.difficulty
 
   await audio.loadInstrument(melodies[state.melody].instrument)
   state.dom.start.addEventListener('click', start)
@@ -269,10 +269,10 @@ const main = async () => {
     showKeyboard(state.showKeyboard)
   })
 
-  state.dom.difficulty_sel.addEventListener('change', ev => {
-    state.difficulty = parseInt(state.dom.difficulty_sel.value)
-    localStorage.setItem('difficulty', state.difficulty)
-  })
+  // state.dom.difficulty_sel.addEventListener('change', ev => {
+  //   state.difficulty = parseInt(state.dom.difficulty_sel.value)
+  //   localStorage.setItem('difficulty', state.difficulty)
+  // })
 
   document.addEventListener('keydown', ev => {
     if (state.gameOver && ev.key === ' ') return restart()
@@ -296,7 +296,8 @@ const main = async () => {
     if (checkKey(key)) {
       playScore(state.score)
       updateScore(state.score + 1)
-      state.speed *= (1 + (0.003 * state.difficulty))
+      // state.speed *= (1 + (0.003 * state.difficulty))
+      state.speed += 0.005
     } else {
       updateLives(state.lives - 1)
       showError(key)
