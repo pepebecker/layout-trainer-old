@@ -2079,7 +2079,7 @@ var state = {
   started: false,
   pause: false,
   speed: 1,
-  difficulty: 1,
+  // difficulty: 1,
   lastTime: 0,
   showKeyboard: 'hidden',
   melody: 'beethoven',
@@ -2090,7 +2090,7 @@ var state = {
     mode_sel: document.querySelector('.mode_sel'),
     melody_sel: document.querySelector('.melody_sel'),
     keyboard_sel: document.querySelector('.keyboard_sel'),
-    difficulty_sel: document.querySelector('.difficulty_sel'),
+    // difficulty_sel: document.querySelector('.difficulty_sel'),
     scene: document.querySelector('.scene'),
     score: document.querySelector('.score_value'),
     lives: document.querySelector('.lives'),
@@ -2144,6 +2144,7 @@ var showError = function showError(key) {
 var spawn = function spawn(text, shift) {
   var x = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : -1;
 
+  var multiplier = Math.random() * 0.6 + 0.8;
   var element = document.createElement('div');
   element.appendChild(document.createTextNode(text));
   element.className = 'entity';
@@ -2151,14 +2152,14 @@ var spawn = function spawn(text, shift) {
   x = x > -1 ? x : utils.getRandom(20, window.innerWidth - 40);
   element.style.left = x + 'px';
   state.dom.scene.appendChild(element);
-  state.falling.push({ text: text, element: element, y: 0 });
+  state.falling.push({ text: text, element: element, y: 0, speed: state.speed * multiplier });
 };
 
 var update = function update(time) {
   if (state.pause || state.gameOver) return;
 
   for (var i in state.falling) {
-    state.falling[i].y += state.speed / 2;
+    state.falling[i].y += state.falling[i].speed;
     state.falling[i].element.style.top = state.falling[i].y + 'px';
 
     if (state.falling[i].y > window.innerHeight) {
@@ -2168,7 +2169,7 @@ var update = function update(time) {
     }
   }
 
-  if (time > state.lastTime + 2000 / state.speed) {
+  if (time > state.lastTime + 1000 / state.speed) {
     var l = [];
     var _iteratorNormalCompletion = true;
     var _didIteratorError = false;
@@ -2322,8 +2323,8 @@ var main = async function main() {
   renderKeyboard(state.lang);
 
   // Difficulty
-  state.difficulty = parseInt(localStorage.getItem('difficulty') || 1);
-  state.dom.difficulty_sel.value = state.difficulty;
+  // state.difficulty = parseInt(localStorage.getItem('difficulty') || 1)
+  // state.dom.difficulty_sel.value = state.difficulty
 
   await audio.loadInstrument(melodies[state.melody].instrument);
   state.dom.start.addEventListener('click', start);
@@ -2358,10 +2359,10 @@ var main = async function main() {
     showKeyboard(state.showKeyboard);
   });
 
-  state.dom.difficulty_sel.addEventListener('change', function (ev) {
-    state.difficulty = parseInt(state.dom.difficulty_sel.value);
-    localStorage.setItem('difficulty', state.difficulty);
-  });
+  // state.dom.difficulty_sel.addEventListener('change', ev => {
+  //   state.difficulty = parseInt(state.dom.difficulty_sel.value)
+  //   localStorage.setItem('difficulty', state.difficulty)
+  // })
 
   document.addEventListener('keydown', function (ev) {
     if (state.gameOver && ev.key === ' ') return restart();
@@ -2385,7 +2386,8 @@ var main = async function main() {
     if (checkKey(key)) {
       playScore(state.score);
       updateScore(state.score + 1);
-      state.speed *= 1 + 0.003 * state.difficulty;
+      // state.speed *= (1 + (0.003 * state.difficulty))
+      state.speed += 0.005;
     } else {
       updateLives(state.lives - 1);
       showError(key);
