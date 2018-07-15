@@ -35,6 +35,20 @@
 			"Ä",
 			"Ö",
 			"Ü"
+		],
+		"words": [
+			"Hallo",
+			"Interessant",
+			"Tastatur",
+			"Heute",
+			"Morgen",
+			"Montag",
+			"Dienstag",
+			"Mittwoch",
+			"Donnerstag",
+			"Freitag",
+			"Samstag",
+			"Sonntag"
 		]
 	},
 	"modes": [
@@ -55,6 +69,12 @@
 			"sets": [
 				"consonants",
 				"vowels"
+			]
+		},
+		{
+			"label": "Words",
+			"sets": [
+				"words"
 			]
 		}
 	]

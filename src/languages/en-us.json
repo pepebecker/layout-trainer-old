@@ -30,6 +30,21 @@
 			"O",
 			"U",
 			"Y"
+		],
+		"words": [
+			"Hello",
+			"Goodbye",
+			"Awesome",
+			"Keyboard",
+			"Today",
+			"Tomorrow",
+			"Monday",
+			"Tuesday",
+			"Wednesday",
+			"Thursday",
+			"Friday",
+			"Saturday",
+			"Sunday"
 		]
 	},
 	"modes": [
@@ -50,6 +65,12 @@
 			"sets": [
 				"consonants",
 				"vowels"
+			]
+		},
+		{
+			"label": "Words",
+			"sets": [
+				"words"
 			]
 		}
 	]

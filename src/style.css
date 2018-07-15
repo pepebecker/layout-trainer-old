@@ -157,6 +157,14 @@ body {
   color: tomato;
 }
 
+.char {
+  display: inline;
+}
+
+.char.correct {
+  color: green;
+}
+
 .explosion {
   position: absolute;
   width: 40px;

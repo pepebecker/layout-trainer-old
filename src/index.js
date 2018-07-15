@@ -8,9 +8,10 @@ const langs = require('./languages')
 const audio = require('./audio')
 const melodies = require('./melodies')
 
-const state = {
+window.state = {
   lang: null,
   mode: 0,
+  set: [],
   falling: [],
   maxLives: 5,
   lives: 0,
@@ -18,10 +19,11 @@ const state = {
   gameOver: false,
   started: false,
   pause: false,
-  speed: 1,
+  speed: .5,
   // difficulty: 1,
   lastTime: 0,
   sandbox: false,
+  updateInterval: null,
   showKeyboard: 'hidden',
   melody: 'beethoven',
   dom: {
@@ -82,52 +84,92 @@ const showError = key => {
   }, 200)
 }
 
+const getSet = () => {
+  let l = []
+  for (let set of langs[state.lang].modes[state.mode].sets) {
+    l = l.concat(langs[state.lang].sets[set])
+  }
+  return l
+}
+
 const spawn = (text, shift, x = -1) => {
-  const multiplier = Math.random() * 0.6 + 0.8
   const element = document.createElement('div')
-  element.appendChild(document.createTextNode(text))
+  const count = state.falling.push({
+    text, element, y: 0,
+    chars: text.length > 1 ? [] : null,
+    speed: state.speed
+  })
   element.className = 'entity'
+  if (text.length > 1) {
+    for (let i = 0; i < text.length; i++) {
+      const char = document.createElement('div')
+      char.className = 'char'
+      char.appendChild(document.createTextNode(text[i]))
+      element.appendChild(char)
+      state.falling[count - 1].chars.push({ text: text[i], dom: char })
+    }
+  } else {
+    element.appendChild(document.createTextNode(text))
+    state.falling[count - 1].speed *= (Math.random() * 0.6 + 0.8)
+  }
   if (shift) element.classList.add('shift')
   x = (x > -1 ? x : utils.getRandom(20, window.innerWidth - 40))
   element.style.left = x + 'px'
   state.dom.scene.appendChild(element)
-  state.falling.push({ text, element, y: 0, speed: state.speed * multiplier })
+  console.log(state.falling[count - 1]);
+  
 }
 
-const update = time => {
-  if (state.pause || state.gameOver) return
+const update = () => {
+  if (state.pause || state.gameOver) {
+    clearInterval(state.updateInterval)
+    return
+  }
 
   for (const i in state.falling) {
     state.falling[i].y += state.falling[i].speed
-    state.falling[i].element.style.top = state.falling[i].y + 'px'
-
     if (state.falling[i].y > window.innerHeight) {
       state.dom.scene.removeChild(state.falling[i].element)
       state.falling.splice(i, 1)
       if (!state.sandbox) updateLives(state.lives - 1)
     }
   }
+}
+
+const render = time => {
+  if (state.pause || state.gameOver) return
+
+  for (const i in state.falling) {
+    state.falling[i].element.style.top = state.falling[i].y + 'px'
+  }
 
   if (time > state.lastTime + (1000 / state.speed)) {
-    let l = []
-    for (let set of langs[state.lang].modes[state.mode].sets) {
-      l = l.concat(langs[state.lang].sets[set])
+    const i = utils.getRandom(0, state.set.length - 1)
+    const entity = state.set[i]
+    if (entity.length > 1) {
+      spawn(entity)
+    } else {
+      const { code, shift } = utils.mapKeyToCode(state.lang, entity)
+      const x = utils.keyPositions[code]
+      spawn(entity, shift, x * (window.innerWidth - 40) + 20)
     }
-    const i = utils.getRandom(0, l.length - 1)
-    const { code, shift } = utils.mapKeyToCode(state.lang, l[i])
-    const x = utils.keyPositions[code]
-    spawn(l[i], shift, x * (window.innerWidth - 40) + 20)
     state.lastTime = time
   }
 
-  requestAnimationFrame(update)
+  requestAnimationFrame(render)
+}
+
+const resume = () => {
+  state.updateInterval = setInterval(update, 16)
+  requestAnimationFrame(render)
 }
 
 const start = () => {
   state.dom.setup.style.display = 'none'
   state.dom.info.style.display = 'none'
+  state.set = getSet()
   state.started = true
-  requestAnimationFrame(update)
+  resume()
 }
 
 const restart = () => {
@@ -155,9 +197,25 @@ const removeKey = index => {
 
 const checkKey = key => {
   for (let i = 0; i < state.falling.length; i++) {
-    if (state.falling[i].text === key) {
-      removeKey(i)
-      return true
+    if (state.falling[i].text.length > 1) {
+      for (const c in state.falling[i].chars) {
+        if (state.falling[i].chars[c].dom.classList.contains('correct')) {
+          continue
+        }
+        if (state.falling[i].chars[c].text.toLowerCase() === key.toLowerCase()) {
+          state.falling[i].chars[c].dom.classList.add('correct')
+          if (c >= state.falling[i].chars.length - 1) {
+            removeKey(i)
+          }
+          return true
+        }
+        return false
+      }
+    } else {
+      if (state.falling[i].text === key) {
+        removeKey(i)
+        return true
+      }
     }
   }
   return false
@@ -283,7 +341,7 @@ const main = async () => {
     if (ev.key === 'Escape' || ev.key === ' ') {
       if (state.pause) {
         setInfo(false)
-        requestAnimationFrame(update)
+        resume()
       } else {
         setInfo('Press space or escape to continue')
       }
