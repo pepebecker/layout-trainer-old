@@ -113,11 +113,9 @@ const spawn = (text, shift, x = -1) => {
     state.falling[count - 1].speed *= (Math.random() * 0.6 + 0.8)
   }
   if (shift) element.classList.add('shift')
-  x = (x > -1 ? x : utils.getRandom(20, window.innerWidth - 40))
-  element.style.left = x + 'px'
   state.dom.scene.appendChild(element)
-  console.log(state.falling[count - 1]);
-  
+  x = (x > -1 ? x : utils.getRandom(20, window.innerWidth - 40 - element.clientWidth))
+  element.style.left = x + 'px'
 }
 
 const update = () => {
@@ -183,7 +181,7 @@ const restart = () => {
   start()
 }
 
-const removeKey = index => {
+const removeWord = index => {
   const explosion = document.createElement('div')
   explosion.classList.add('explosion')
   explosion.style.left = state.falling[index].element.style.left
@@ -195,6 +193,9 @@ const removeKey = index => {
   state.falling.splice(index, 1)
 }
 
+const INPUT_WRONG = 0
+const INPUT_CORRECT = 1
+const INPUT_COMPLETE = 2
 const checkKey = key => {
   for (let i = 0; i < state.falling.length; i++) {
     if (state.falling[i].text.length > 1) {
@@ -205,20 +206,27 @@ const checkKey = key => {
         if (state.falling[i].chars[c].text.toLowerCase() === key.toLowerCase()) {
           state.falling[i].chars[c].dom.classList.add('correct')
           if (c >= state.falling[i].chars.length - 1) {
-            removeKey(i)
+            removeWord(i)
+            return {
+              status: INPUT_COMPLETE,
+              score: state.falling[i].chars.length
+            }
           }
-          return true
+          return { status: INPUT_CORRECT }
         }
-        return false
+        return { status: INPUT_WRONG }
       }
     } else {
       if (state.falling[i].text === key) {
-        removeKey(i)
-        return true
+        removeWord(i)
+        return {
+          status: INPUT_COMPLETE,
+          score: 1
+        }
       }
     }
   }
-  return false
+  return INPUT_WRONG
 }
 
 const showKeyboard = value => {
@@ -353,10 +361,12 @@ const main = async () => {
     const key = utils.mapKeyEvent[state.lang](ev)
     if (!key) return
 
-    if (checkKey(key) || state.sandbox) {
+    const result = checkKey(key)
+    if (result.status === INPUT_CORRECT) {
       playScore(state.score)
-      updateScore(state.score + 1)
-      // state.speed *= (1 + (0.003 * state.difficulty))
+    } else if (result.status === INPUT_COMPLETE) {
+      playScore(state.score)
+      updateScore(state.score + result.score)
       state.speed += 0.005
     } else {
       updateLives(state.lives - 1)
