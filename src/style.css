@@ -1,6 +1,9 @@
 body {
+  background: skyblue;
   font-family: sans-serif;
-  background: skyblue
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .scene {
@@ -10,6 +13,34 @@ body {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
+}
+
+.cloud {
+  position: absolute;
+  opacity: 0.5;
+  animation-duration: 100s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+#cloud-1 {
+  top: 0;
+  animation-name: cloud-animation-1;
+}
+
+#cloud-2 {
+  top: 200px;
+  animation-name: cloud-animation-2;
+}
+
+#cloud-3 {
+  top: 400px;
+  animation-name: cloud-animation-3;
+}
+
+#cloud-4 {
+  top: 600px;
+  animation-name: cloud-animation-4;
 }
 
 .hud {
@@ -204,4 +235,24 @@ body {
     margin-left: -30px;
     margin-top: -30px;
   }
+}
+
+@keyframes cloud-animation-1 {
+  from { left: -200% }
+  to { left: 300% }
+}
+
+@keyframes cloud-animation-2 {
+  from { left: -100% }
+  to { left: 400% }
+}
+
+@keyframes cloud-animation-3 {
+  from { left: -300% }
+  to { left: 200% }
+}
+
+@keyframes cloud-animation-4 {
+  from { left: -400% }
+  to { left: 100% }
 }
