@@ -25,7 +25,7 @@ window.state = {
   sandbox: false,
   updateInterval: null,
   showKeyboard: 'hidden',
-  melody: 'beethoven',
+  melody: 'odeToJoy',
   dom: {
     setup: document.querySelector('.setup'),
     start: document.querySelector('.start_btn'),
@@ -265,11 +265,11 @@ const validateKey = key => {
     if (state.falling[wordIndex].chars[charIndex].keys[keyIndex] === key) {
       const increaseStatus = increaseCharacterIndex()
       if (increaseStatus === consts.INCREASE_IDLE) {
-        return { status: consts.INPUT_CORRECT }
+        return { status: consts.INPUT_CORRECT, score: 1 }
       }
       if (increaseStatus === consts.INCREASE_CHAR_COMPLETE) {
         state.falling[wordIndex].chars[charIndex].dom.classList.add('correct')
-        return { status: consts.INPUT_CORRECT }
+        return { status: consts.INPUT_CORRECT, score: 1 }
       }
       if (increaseStatus === consts.INCREASE_WORD_COMPLETE) {
         const length = state.falling[wordIndex].chars.length
@@ -408,9 +408,10 @@ const main = async () => {
     const result = validateKey(key)
     if (result.status == consts.INPUT_CORRECT) {
       playScore(state.score)
+      updateScore(state.score + result.score)
     } else if (result.status == consts.INPUT_COMPLETE) {
       playScore(state.score)
-      updateScore(state.score + result.score)
+      // updateScore(state.score + result.score)
       state.speed += 0.005
     } else {
       updateLives(state.lives - 1)

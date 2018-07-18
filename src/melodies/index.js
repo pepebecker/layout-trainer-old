@@ -1,6 +1,6 @@
 'use strict'
 
 module.exports = {
-  beethoven: require('./beethoven'),
+  odeToJoy: require('./ode-to-joy'),
   korobeiniki: require('./korobeiniki')
 }

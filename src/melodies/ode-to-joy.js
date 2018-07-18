@@ -157,6 +157,6 @@ const voices = [
 
 module.exports = {
     voices,
-    label: 'Beethoven',
+    label: 'Ode To Joy',
     instrument: 'https://surikov.github.io/webaudiofontdata/sound/0000_JCLive_sf2_file.js'
 }
