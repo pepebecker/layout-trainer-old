@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "bel": "^6.0.0",
-    "query-string": "^6.0.0",
     "webaudiofont": "^2.5.24"
   }
 }

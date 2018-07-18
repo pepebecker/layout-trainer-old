@@ -232,103 +232,7 @@ module.exports = hyperx(belCreateElement, {comments: true})
 module.exports.default = module.exports
 module.exports.createElement = belCreateElement
 
-},{"./appendChild":1,"hyperx":5}],3:[function(require,module,exports){
-'use strict';
-var token = '%[a-f0-9]{2}';
-var singleMatcher = new RegExp(token, 'gi');
-var multiMatcher = new RegExp('(' + token + ')+', 'gi');
-
-function decodeComponents(components, split) {
-	try {
-		// Try to decode the entire string first
-		return decodeURIComponent(components.join(''));
-	} catch (err) {
-		// Do nothing
-	}
-
-	if (components.length === 1) {
-		return components;
-	}
-
-	split = split || 1;
-
-	// Split the array in 2 parts
-	var left = components.slice(0, split);
-	var right = components.slice(split);
-
-	return Array.prototype.concat.call([], decodeComponents(left), decodeComponents(right));
-}
-
-function decode(input) {
-	try {
-		return decodeURIComponent(input);
-	} catch (err) {
-		var tokens = input.match(singleMatcher);
-
-		for (var i = 1; i < tokens.length; i++) {
-			input = decodeComponents(tokens, i).join('');
-
-			tokens = input.match(singleMatcher);
-		}
-
-		return input;
-	}
-}
-
-function customDecodeURIComponent(input) {
-	// Keep track of all the replacements and prefill the map with the `BOM`
-	var replaceMap = {
-		'%FE%FF': '\uFFFD\uFFFD',
-		'%FF%FE': '\uFFFD\uFFFD'
-	};
-
-	var match = multiMatcher.exec(input);
-	while (match) {
-		try {
-			// Decode as big chunks as possible
-			replaceMap[match[0]] = decodeURIComponent(match[0]);
-		} catch (err) {
-			var result = decode(match[0]);
-
-			if (result !== match[0]) {
-				replaceMap[match[0]] = result;
-			}
-		}
-
-		match = multiMatcher.exec(input);
-	}
-
-	// Add `%C2` at the end of the map to make sure it does not replace the combinator before everything else
-	replaceMap['%C2'] = '\uFFFD';
-
-	var entries = Object.keys(replaceMap);
-
-	for (var i = 0; i < entries.length; i++) {
-		// Replace all decoded components
-		var key = entries[i];
-		input = input.replace(new RegExp(key, 'g'), replaceMap[key]);
-	}
-
-	return input;
-}
-
-module.exports = function (encodedURI) {
-	if (typeof encodedURI !== 'string') {
-		throw new TypeError('Expected `encodedURI` to be of type `string`, got `' + typeof encodedURI + '`');
-	}
-
-	try {
-		encodedURI = encodedURI.replace(/\+/g, ' ');
-
-		// Try the built in decoder first
-		return decodeURIComponent(encodedURI);
-	} catch (err) {
-		// Fallback to a more advanced decoder
-		return customDecodeURIComponent(encodedURI);
-	}
-};
-
-},{}],4:[function(require,module,exports){
+},{"./appendChild":1,"hyperx":4}],3:[function(require,module,exports){
 module.exports = attributeToProperty
 
 var transform = {
@@ -349,7 +253,7 @@ function attributeToProperty (h) {
   }
 }
 
-},{}],5:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 var attrToProp = require('hyperscript-attribute-to-property')
 
 var VAR = 0, TEXT = 1, OPEN = 2, CLOSE = 3, ATTR = 4
@@ -645,7 +549,7 @@ var closeRE = RegExp('^(' + [
 ].join('|') + ')(?:[\.#][a-zA-Z0-9\u007F-\uFFFF_:-]+)*$')
 function selfClosing (tag) { return closeRE.test(tag) }
 
-},{"hyperscript-attribute-to-property":4}],6:[function(require,module,exports){
+},{"hyperscript-attribute-to-property":3}],5:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -873,7 +777,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":7}],7:[function(require,module,exports){
+},{"_process":6}],6:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -1059,227 +963,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],8:[function(require,module,exports){
-'use strict';
-const strictUriEncode = require('strict-uri-encode');
-const decodeComponent = require('decode-uri-component');
-
-function encoderForArrayFormat(options) {
-	switch (options.arrayFormat) {
-		case 'index':
-			return (key, value, index) => {
-				return value === null ? [
-					encode(key, options),
-					'[',
-					index,
-					']'
-				].join('') : [
-					encode(key, options),
-					'[',
-					encode(index, options),
-					']=',
-					encode(value, options)
-				].join('');
-			};
-		case 'bracket':
-			return (key, value) => {
-				return value === null ? encode(key, options) : [
-					encode(key, options),
-					'[]=',
-					encode(value, options)
-				].join('');
-			};
-		default:
-			return (key, value) => {
-				return value === null ? encode(key, options) : [
-					encode(key, options),
-					'=',
-					encode(value, options)
-				].join('');
-			};
-	}
-}
-
-function parserForArrayFormat(options) {
-	let result;
-
-	switch (options.arrayFormat) {
-		case 'index':
-			return (key, value, accumulator) => {
-				result = /\[(\d*)\]$/.exec(key);
-
-				key = key.replace(/\[\d*\]$/, '');
-
-				if (!result) {
-					accumulator[key] = value;
-					return;
-				}
-
-				if (accumulator[key] === undefined) {
-					accumulator[key] = {};
-				}
-
-				accumulator[key][result[1]] = value;
-			};
-		case 'bracket':
-			return (key, value, accumulator) => {
-				result = /(\[\])$/.exec(key);
-				key = key.replace(/\[\]$/, '');
-
-				if (!result) {
-					accumulator[key] = value;
-					return;
-				}
-
-				if (accumulator[key] === undefined) {
-					accumulator[key] = [value];
-					return;
-				}
-
-				accumulator[key] = [].concat(accumulator[key], value);
-			};
-		default:
-			return (key, value, accumulator) => {
-				if (accumulator[key] === undefined) {
-					accumulator[key] = value;
-					return;
-				}
-
-				accumulator[key] = [].concat(accumulator[key], value);
-			};
-	}
-}
-
-function encode(value, options) {
-	if (options.encode) {
-		return options.strict ? strictUriEncode(value) : encodeURIComponent(value);
-	}
-
-	return value;
-}
-
-function keysSorter(input) {
-	if (Array.isArray(input)) {
-		return input.sort();
-	}
-
-	if (typeof input === 'object') {
-		return keysSorter(Object.keys(input))
-			.sort((a, b) => Number(a) - Number(b))
-			.map(key => input[key]);
-	}
-
-	return input;
-}
-
-function extract(input) {
-	const queryStart = input.indexOf('?');
-	if (queryStart === -1) {
-		return '';
-	}
-	return input.slice(queryStart + 1);
-}
-
-function parse(input, options) {
-	options = Object.assign({arrayFormat: 'none'}, options);
-
-	const formatter = parserForArrayFormat(options);
-
-	// Create an object with no prototype
-	const ret = Object.create(null);
-
-	if (typeof input !== 'string') {
-		return ret;
-	}
-
-	input = input.trim().replace(/^[?#&]/, '');
-
-	if (!input) {
-		return ret;
-	}
-
-	for (const param of input.split('&')) {
-		let [key, value] = param.replace(/\+/g, ' ').split('=');
-
-		// Missing `=` should be `null`:
-		// http://w3.org/TR/2012/WD-url-20120524/#collect-url-parameters
-		value = value === undefined ? null : decodeComponent(value);
-
-		formatter(decodeComponent(key), value, ret);
-	}
-
-	return Object.keys(ret).sort().reduce((result, key) => {
-		const value = ret[key];
-		if (Boolean(value) && typeof value === 'object' && !Array.isArray(value)) {
-			// Sort object keys, not values
-			result[key] = keysSorter(value);
-		} else {
-			result[key] = value;
-		}
-
-		return result;
-	}, Object.create(null));
-}
-
-exports.extract = extract;
-exports.parse = parse;
-
-exports.stringify = (obj, options) => {
-	const defaults = {
-		encode: true,
-		strict: true,
-		arrayFormat: 'none'
-	};
-
-	options = Object.assign(defaults, options);
-
-	if (options.sort === false) {
-		options.sort = () => {};
-	}
-
-	const formatter = encoderForArrayFormat(options);
-
-	return obj ? Object.keys(obj).sort(options.sort).map(key => {
-		const value = obj[key];
-
-		if (value === undefined) {
-			return '';
-		}
-
-		if (value === null) {
-			return encode(key, options);
-		}
-
-		if (Array.isArray(value)) {
-			const result = [];
-
-			for (const value2 of value.slice()) {
-				if (value2 === undefined) {
-					continue;
-				}
-
-				result.push(formatter(key, value2, result.length));
-			}
-
-			return result.join('&');
-		}
-
-		return encode(key, options) + '=' + encode(value, options);
-	}).filter(x => x.length > 0).join('&') : '';
-};
-
-exports.parseUrl = (input, options) => {
-	return {
-		url: input.split('?')[0] || '',
-		query: parse(extract(input), options)
-	};
-};
-
-},{"decode-uri-component":3,"strict-uri-encode":9}],9:[function(require,module,exports){
-'use strict';
-module.exports = str => encodeURIComponent(str).replace(/[!'()*]/g, x => `%${x.charCodeAt(0).toString(16).toUpperCase()}`);
-
-},{}],10:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 'use strict'
 console.log('WebAudioFont Channel v1.04');
 function WebAudioFontChannel(audioContext) {
@@ -1321,7 +1005,7 @@ if (typeof window !== 'undefined') {
 	window.WebAudioFontChannel = WebAudioFontChannel;
 }
 
-},{}],11:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 'use strict'
 console.log('WebAudioFont Loader v1.17');
 function WebAudioFontLoader(player) {
@@ -1631,7 +1315,7 @@ if (typeof window !== 'undefined') {
 	window.WebAudioFontLoader = WebAudioFontLoader;
 }
 
-},{}],12:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 'use strict'
 console.log('WebAudioFont Player v2.76');
 var WebAudioFontLoader = require('./loader');
@@ -1942,7 +1626,7 @@ if (typeof window !== 'undefined') {
 	window.WebAudioFontPlayer = WebAudioFontPlayer;
 }
 
-},{"./channel":10,"./loader":11,"./reverberator":13}],13:[function(require,module,exports){
+},{"./channel":7,"./loader":8,"./reverberator":10}],10:[function(require,module,exports){
 'use strict'
 console.log('WebAudioFont Reverberator v1.08');
 function WebAudioFontReverberator(audioContext) {
@@ -1986,7 +1670,7 @@ if (typeof window !== 'undefined') {
 	window.WebAudioFontReverberator = WebAudioFontReverberator;
 }
 
-},{}],14:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 'use strict';
 
 var WebAudioFontPlayer = require('webaudiofont');
@@ -2055,7 +1739,7 @@ module.exports = {
   }
 };
 
-},{"path":6,"webaudiofont":12}],15:[function(require,module,exports){
+},{"path":5,"webaudiofont":9}],12:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -2067,13 +1751,10 @@ module.exports = {
   INPUT_COMPLETE: 5
 };
 
-},{}],16:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 'use strict';
 
 require('./style.css');
-
-var _require = require('query-string'),
-    parse = _require.parse;
 
 var utils = require('./utils');
 var langs = require('./languages');
@@ -2154,6 +1835,10 @@ var showError = function showError(key) {
   setTimeout(function () {
     state.dom.error.style.opacity = '0';
   }, 200);
+};
+
+var getLayoutCode = function getLayoutCode(lang) {
+  return langs[lang].layout || lang;
 };
 
 var getSet = function getSet() {
@@ -2259,7 +1944,7 @@ var render = function render(time) {
     if (entity.length > 1) {
       spawn(entity);
     } else {
-      var _utils$mapKeyToCode = utils.mapKeyToCode(state.lang, entity),
+      var _utils$mapKeyToCode = utils.mapKeyToCode(getLayoutCode(state.lang), entity),
           code = _utils$mapKeyToCode.code,
           shift = _utils$mapKeyToCode.shift;
 
@@ -2403,7 +2088,7 @@ var renderKeyboard = function renderKeyboard(lang) {
   if (state.dom.keyboard) {
     document.body.removeChild(state.dom.keyboard);
   }
-  state.dom.keyboard = utils.renderKeyboard(utils.layouts[lang]);
+  state.dom.keyboard = utils.renderKeyboard(utils.layouts[getLayoutCode(lang)]);
   document.body.appendChild(state.dom.keyboard);
   showKeyboard(state.showKeyboard);
 };
@@ -2502,7 +2187,7 @@ var main = async function main() {
 
     if (state.pause) return;
 
-    var key = utils.mapKeyEvent[state.lang](ev);
+    var key = utils.mapKeyEvent[getLayoutCode(state.lang)](ev);
     if (!key) return;
 
     var result = validateKey(key);
@@ -2522,7 +2207,7 @@ var main = async function main() {
 
 main().catch(console.error);
 
-},{"./audio":14,"./constants":15,"./languages":21,"./melodies":33,"./style.css":36,"./utils":37,"query-string":8}],17:[function(require,module,exports){
+},{"./audio":11,"./constants":12,"./languages":18,"./melodies":31,"./style.css":34,"./utils":35}],14:[function(require,module,exports){
 'use strict';
 
 var rows = [["Backquote", "Digit1", "Digit2", "Digit3", "Digit4", "Digit5", "Digit6", "Digit7", "Digit8", "Digit9", "Digit0", "Minus", "Equal"], ["KeyQ", "KeyW", "KeyE", "KeyR", "KeyT", "KeyY", "KeyU", "KeyI", "KeyO", "KeyP", "BracketLeft", "BracketRight", "Backslash"], ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG', 'KeyH', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon', 'Quote'], ['KeyZ', 'KeyX', 'KeyC', 'KeyV', 'KeyB', 'KeyN', 'KeyM', 'Comma', 'Period', 'Slash']];
@@ -2540,7 +2225,7 @@ for (var r in rows) {
 
 module.exports = positions;
 
-},{}],18:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 module.exports={
 	"label": "German",
 	"sets": {
@@ -2623,7 +2308,7 @@ module.exports={
 	]
 }
 
-},{}],19:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 module.exports={
 	"label": "English (U.S.)",
 	"sets": {
@@ -2702,7 +2387,7 @@ module.exports={
 	]
 }
 
-},{}],20:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 module.exports={
 	"label": "Spanish",
 	"sets": {
@@ -2761,7 +2446,7 @@ module.exports={
 	]
 }
 
-},{}],21:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -2770,10 +2455,11 @@ module.exports = {
   es_es: require('./es-es'),
   ko: require('./ko'),
   ru: require('./ru'),
+  zh_cn: require('./zh-cn'),
   zh_tw: require('./zh-tw')
 };
 
-},{"./de-de":18,"./en-us":19,"./es-es":20,"./ko":22,"./ru":23,"./zh-tw":24}],22:[function(require,module,exports){
+},{"./de-de":15,"./en-us":16,"./es-es":17,"./ko":19,"./ru":20,"./zh-cn":21,"./zh-tw":22}],19:[function(require,module,exports){
 module.exports={
 	"label": "Korean",
 	"sets": {
@@ -2856,7 +2542,7 @@ module.exports={
 	]
 }
 
-},{}],23:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 module.exports={
 	"label": "Russian",
 	"sets": {
@@ -2906,7 +2592,49 @@ module.exports={
 	]
 }
 
-},{}],24:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
+module.exports={
+	"label": "Chinese (Pinyin)",
+	"sets": {
+		"words": [
+			["你好", "ni", "hao"],
+			["我们", "wo", "men"],
+			["你们", "ni", "men"],
+			["中国", "zhong", "guo"],
+			["熊猫", "xiong", "mao"],
+			["明天", "ming", "tian"],
+			["昨天", "zuo", "tian"],
+			["天气", "tian", "qi"]
+		],
+		"words-toned": [
+			["你好", "ni3", "hao3"],
+			["我们", "wo3", "men"],
+			["你们", "ni3", "men"],
+			["中国", "zhong1", "guo2"],
+			["熊猫", "xiong2", "mao1"],
+			["明天", "ming2", "tian1"],
+			["昨天", "zuo2", "tian1"],
+			["天气", "tian1", "qi4"]
+		]
+	},
+	"modes": [
+		{
+			"label": "Words",
+			"sets": [
+				"words"
+			]
+		},
+		{
+			"label": "Words (Pinyin with tone)",
+			"sets": [
+				"words-toned"
+			]
+		}
+	],
+	"layout": "en_us"
+}
+
+},{}],22:[function(require,module,exports){
 module.exports={
 	"label": "Chinese (Zhuyin)",
 	"sets": {
@@ -2975,7 +2703,7 @@ module.exports={
 	]
 }
 
-},{}],25:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "<",
@@ -3040,7 +2768,7 @@ module.exports={
   }
 }
 
-},{}],26:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "`",
@@ -3154,7 +2882,7 @@ module.exports={
   }
 }
 
-},{}],27:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "<",
@@ -3200,7 +2928,7 @@ module.exports={
   "Slash": "ç"
 }
 
-},{}],28:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 'use strict';
 
 var en_us = require('./en-us');
@@ -3214,7 +2942,7 @@ module.exports = {
   zh_tw: Object.assign({}, en_us, require('./zh-tw'))
 };
 
-},{"./de-de":25,"./en-us":26,"./es-es":27,"./ko":29,"./ru":30,"./zh-tw":31}],29:[function(require,module,exports){
+},{"./de-de":23,"./en-us":24,"./es-es":25,"./ko":27,"./ru":28,"./zh-tw":29}],27:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "₩",
@@ -3269,7 +2997,7 @@ module.exports={
   "KeyM": "ㅡ"
 }
 
-},{}],30:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "]",
@@ -3338,7 +3066,7 @@ module.exports={
   "Period": "ю"
 }
 
-},{}],31:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "·",
@@ -3522,7 +3250,7 @@ module.exports={
   }
 }
 
-},{}],32:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 'use strict';
 
 var scale = {
@@ -3558,7 +3286,7 @@ module.exports = {
     instrument: 'https://surikov.github.io/webaudiofontdata/sound/0000_JCLive_sf2_file.js'
 };
 
-},{}],33:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -3566,7 +3294,7 @@ module.exports = {
   korobeiniki: require('./korobeiniki')
 };
 
-},{"./beethoven":32,"./korobeiniki":34}],34:[function(require,module,exports){
+},{"./beethoven":30,"./korobeiniki":32}],32:[function(require,module,exports){
 'use strict';
 
 var scale = {
@@ -3684,7 +3412,7 @@ module.exports = {
     instrument: 'https://surikov.github.io/webaudiofontdata/sound/0800_SBLive_sf2.js'
 };
 
-},{}],35:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 'use strict';
 
 var _templateObject = _taggedTemplateLiteral(['\n    <div class="keyboard">\n      <div class="row">\n        <div class="key Backquote">', '</div>\n        <div class="key Digit1">', '</div>\n        <div class="key Digit2">', '</div>\n        <div class="key Digit3">', '</div>\n        <div class="key Digit4">', '</div>\n        <div class="key Digit5">', '</div>\n        <div class="key Digit6">', '</div>\n        <div class="key Digit7">', '</div>\n        <div class="key Digit8">', '</div>\n        <div class="key Digit9">', '</div>\n        <div class="key Digit0">', '</div>\n        <div class="key Minus">', '</div>\n        <div class="key Equal">', '</div>\n        <div class="key Backspace">\u2421</div>\n      </div>\n      <div class="row">\n        <div class="key Tab">\u21B9</div>\n        <div class="key KeyQ">', '</div>\n        <div class="key KeyW">', '</div>\n        <div class="key KeyE">', '</div>\n        <div class="key KeyR">', '</div>\n        <div class="key KeyT">', '</div>\n        <div class="key KeyY">', '</div>\n        <div class="key KeyU">', '</div>\n        <div class="key KeyI">', '</div>\n        <div class="key KeyO">', '</div>\n        <div class="key KeyP">', '</div>\n        <div class="key BracketLeft">', '</div>\n        <div class="key BracketRight">', '</div>\n        <div class="key Backslash">', '</div>\n      </div>\n      <div class="row">\n        <div class="key CapsLock">\u21EA</div>\n        <div class="key KeyA">', '</div>\n        <div class="key KeyS">', '</div>\n        <div class="key KeyD">', '</div>\n        <div class="key KeyF">', '</div>\n        <div class="key KeyG">', '</div>\n        <div class="key KeyH">', '</div>\n        <div class="key KeyJ">', '</div>\n        <div class="key KeyK">', '</div>\n        <div class="key KeyL">', '</div>\n        <div class="key Semicolon">', '</div>\n        <div class="key Quote">', '</div>\n        <div class="key Enter">\u23CE</div>\n      </div>\n      <div class="row">\n        <div class="key Shift">\u21E7</div>\n        <div class="key KeyZ">', '</div>\n        <div class="key KeyX">', '</div>\n        <div class="key KeyC">', '</div>\n        <div class="key KeyV">', '</div>\n        <div class="key KeyB">', '</div>\n        <div class="key KeyN">', '</div>\n        <div class="key KeyM">', '</div>\n        <div class="key Comma">', '</div>\n        <div class="key Period">', '</div>\n        <div class="key Slash">', '</div>\n        <div class="key Shift">\u21E7</div>\n      </div>\n    </div>\n  '], ['\n    <div class="keyboard">\n      <div class="row">\n        <div class="key Backquote">', '</div>\n        <div class="key Digit1">', '</div>\n        <div class="key Digit2">', '</div>\n        <div class="key Digit3">', '</div>\n        <div class="key Digit4">', '</div>\n        <div class="key Digit5">', '</div>\n        <div class="key Digit6">', '</div>\n        <div class="key Digit7">', '</div>\n        <div class="key Digit8">', '</div>\n        <div class="key Digit9">', '</div>\n        <div class="key Digit0">', '</div>\n        <div class="key Minus">', '</div>\n        <div class="key Equal">', '</div>\n        <div class="key Backspace">\u2421</div>\n      </div>\n      <div class="row">\n        <div class="key Tab">\u21B9</div>\n        <div class="key KeyQ">', '</div>\n        <div class="key KeyW">', '</div>\n        <div class="key KeyE">', '</div>\n        <div class="key KeyR">', '</div>\n        <div class="key KeyT">', '</div>\n        <div class="key KeyY">', '</div>\n        <div class="key KeyU">', '</div>\n        <div class="key KeyI">', '</div>\n        <div class="key KeyO">', '</div>\n        <div class="key KeyP">', '</div>\n        <div class="key BracketLeft">', '</div>\n        <div class="key BracketRight">', '</div>\n        <div class="key Backslash">', '</div>\n      </div>\n      <div class="row">\n        <div class="key CapsLock">\u21EA</div>\n        <div class="key KeyA">', '</div>\n        <div class="key KeyS">', '</div>\n        <div class="key KeyD">', '</div>\n        <div class="key KeyF">', '</div>\n        <div class="key KeyG">', '</div>\n        <div class="key KeyH">', '</div>\n        <div class="key KeyJ">', '</div>\n        <div class="key KeyK">', '</div>\n        <div class="key KeyL">', '</div>\n        <div class="key Semicolon">', '</div>\n        <div class="key Quote">', '</div>\n        <div class="key Enter">\u23CE</div>\n      </div>\n      <div class="row">\n        <div class="key Shift">\u21E7</div>\n        <div class="key KeyZ">', '</div>\n        <div class="key KeyX">', '</div>\n        <div class="key KeyC">', '</div>\n        <div class="key KeyV">', '</div>\n        <div class="key KeyB">', '</div>\n        <div class="key KeyN">', '</div>\n        <div class="key KeyM">', '</div>\n        <div class="key Comma">', '</div>\n        <div class="key Period">', '</div>\n        <div class="key Slash">', '</div>\n        <div class="key Shift">\u21E7</div>\n      </div>\n    </div>\n  ']);
@@ -3697,9 +3425,9 @@ module.exports = function (map) {
   return bel(_templateObject, map('Backquote'), map('Digit1'), map('Digit2'), map('Digit3'), map('Digit4'), map('Digit5'), map('Digit6'), map('Digit7'), map('Digit8'), map('Digit9'), map('Digit0'), map('Minus'), map('Equal'), map('KeyQ'), map('KeyW'), map('KeyE'), map('KeyR'), map('KeyT'), map('KeyY'), map('KeyU'), map('KeyI'), map('KeyO'), map('KeyP'), map('BracketLeft'), map('BracketRight'), map('Backslash'), map('KeyA'), map('KeyS'), map('KeyD'), map('KeyF'), map('KeyG'), map('KeyH'), map('KeyJ'), map('KeyK'), map('KeyL'), map('Semicolon'), map('Quote'), map('KeyZ'), map('KeyX'), map('KeyC'), map('KeyV'), map('KeyB'), map('KeyN'), map('KeyM'), map('Comma'), map('Period'), map('Slash'));
 };
 
-},{"bel":2}],36:[function(require,module,exports){
+},{"bel":2}],34:[function(require,module,exports){
 
-},{}],37:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 'use strict';
 
 var layouts = require('./layouts');
@@ -3757,4 +3485,4 @@ module.exports = {
   }
 };
 
-},{"./key-positions":17,"./layouts":28,"./render-keyboard":35}]},{},[16]);
+},{"./key-positions":14,"./layouts":26,"./render-keyboard":33}]},{},[13]);
