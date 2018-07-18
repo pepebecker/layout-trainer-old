@@ -2058,6 +2058,18 @@ module.exports = {
 },{"path":6,"webaudiofont":12}],15:[function(require,module,exports){
 'use strict';
 
+module.exports = {
+  INCREASE_IDLE: 0,
+  INCREASE_CHAR_COMPLETE: 1,
+  INCREASE_WORD_COMPLETE: 2,
+  INPUT_WRONG: 3,
+  INPUT_CORRECT: 4,
+  INPUT_COMPLETE: 5
+};
+
+},{}],16:[function(require,module,exports){
+'use strict';
+
 require('./style.css');
 
 var _require = require('query-string'),
@@ -2067,21 +2079,24 @@ var utils = require('./utils');
 var langs = require('./languages');
 var audio = require('./audio');
 var melodies = require('./melodies');
+var consts = require('./constants');
 
-var state = {
+window.state = {
   lang: null,
   mode: 0,
+  set: [],
   falling: [],
+  currentWord: { wordIndex: -1, charIndex: 0, keyIndex: 0 },
   maxLives: 5,
   lives: 0,
   score: 0,
   gameOver: false,
   started: false,
   pause: false,
-  speed: 1,
-  // difficulty: 1,
+  speed: .5,
   lastTime: 0,
   sandbox: false,
+  updateInterval: null,
   showKeyboard: 'hidden',
   melody: 'beethoven',
   dom: {
@@ -2091,7 +2106,6 @@ var state = {
     mode_sel: document.querySelector('.mode_sel'),
     melody_sel: document.querySelector('.melody_sel'),
     keyboard_sel: document.querySelector('.keyboard_sel'),
-    // difficulty_sel: document.querySelector('.difficulty_sel'),
     scene: document.querySelector('.scene'),
     score: document.querySelector('.score_value'),
     lives: document.querySelector('.lives'),
@@ -2142,80 +2156,133 @@ var showError = function showError(key) {
   }, 200);
 };
 
-var spawn = function spawn(text, shift) {
-  var x = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : -1;
+var getSet = function getSet() {
+  var l = [];
+  var _iteratorNormalCompletion = true;
+  var _didIteratorError = false;
+  var _iteratorError = undefined;
 
-  var multiplier = Math.random() * 0.6 + 0.8;
-  var element = document.createElement('div');
-  element.appendChild(document.createTextNode(text));
-  element.className = 'entity';
-  if (shift) element.classList.add('shift');
-  x = x > -1 ? x : utils.getRandom(20, window.innerWidth - 40);
-  element.style.left = x + 'px';
-  state.dom.scene.appendChild(element);
-  state.falling.push({ text: text, element: element, y: 0, speed: state.speed * multiplier });
+  try {
+    for (var _iterator = langs[state.lang].modes[state.mode].sets[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+      var set = _step.value;
+
+      l = l.concat(langs[state.lang].sets[set]);
+    }
+  } catch (err) {
+    _didIteratorError = true;
+    _iteratorError = err;
+  } finally {
+    try {
+      if (!_iteratorNormalCompletion && _iterator.return) {
+        _iterator.return();
+      }
+    } finally {
+      if (_didIteratorError) {
+        throw _iteratorError;
+      }
+    }
+  }
+
+  return l;
 };
 
-var update = function update(time) {
-  if (state.pause || state.gameOver) return;
+var populateWithChars = function populateWithChars(element, word) {
+  var characters = [];
+  if (typeof word === 'string') {
+    for (var i = 0; i < word.length; i++) {
+      var char = document.createElement('div');
+      char.className = 'char';
+      char.appendChild(document.createTextNode(word[i]));
+      element.appendChild(char);
+      characters.push({ char: word[i], dom: char, keys: word[i].toUpperCase() });
+    }
+  } else {
+    var text = word[0];
+    for (var _i = 0; _i < text.length; _i++) {
+      var _char = document.createElement('div');
+      _char.className = 'char';
+      _char.appendChild(document.createTextNode(text[_i]));
+      element.appendChild(_char);
+      characters.push({ char: text[_i], dom: _char, keys: word[_i + 1].toUpperCase() });
+    }
+  }
+  return characters;
+};
+
+var spawn = function spawn(word, shift) {
+  var x = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : -1;
+
+  var wordEl = document.createElement('div');
+  var count = state.falling.push({
+    word: word, dom: wordEl, y: 0,
+    speed: state.speed
+  });
+  wordEl.className = 'entity';
+  if (word.length > 1) {
+    state.falling[count - 1].chars = populateWithChars(wordEl, word);
+  } else {
+    wordEl.appendChild(document.createTextNode(word));
+    state.falling[count - 1].speed *= Math.random() * 0.6 + 0.8;
+  }
+  if (shift) wordEl.classList.add('shift');
+  state.dom.scene.appendChild(wordEl);
+  x = x > -1 ? x : utils.getRandom(20, window.innerWidth - 40 - wordEl.clientWidth);
+  wordEl.style.left = x + 'px';
+};
+
+var update = function update() {
+  if (state.pause || state.gameOver) {
+    clearInterval(state.updateInterval);
+    return;
+  }
 
   for (var i in state.falling) {
     state.falling[i].y += state.falling[i].speed;
-    state.falling[i].element.style.top = state.falling[i].y + 'px';
-
     if (state.falling[i].y > window.innerHeight) {
-      state.dom.scene.removeChild(state.falling[i].element);
+      state.dom.scene.removeChild(state.falling[i].dom);
       state.falling.splice(i, 1);
       if (!state.sandbox) updateLives(state.lives - 1);
     }
   }
+};
+
+var render = function render(time) {
+  if (state.pause || state.gameOver) return;
+
+  for (var i in state.falling) {
+    state.falling[i].dom.style.top = state.falling[i].y + 'px';
+  }
 
   if (time > state.lastTime + 1000 / state.speed) {
-    var l = [];
-    var _iteratorNormalCompletion = true;
-    var _didIteratorError = false;
-    var _iteratorError = undefined;
+    var _i2 = utils.getRandom(0, state.set.length - 1);
+    var entity = state.set[_i2];
+    if (entity.length > 1) {
+      spawn(entity);
+    } else {
+      var _utils$mapKeyToCode = utils.mapKeyToCode(state.lang, entity),
+          code = _utils$mapKeyToCode.code,
+          shift = _utils$mapKeyToCode.shift;
 
-    try {
-      for (var _iterator = langs[state.lang].modes[state.mode].sets[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-        var set = _step.value;
-
-        l = l.concat(langs[state.lang].sets[set]);
-      }
-    } catch (err) {
-      _didIteratorError = true;
-      _iteratorError = err;
-    } finally {
-      try {
-        if (!_iteratorNormalCompletion && _iterator.return) {
-          _iterator.return();
-        }
-      } finally {
-        if (_didIteratorError) {
-          throw _iteratorError;
-        }
-      }
+      var x = utils.keyPositions[code];
+      spawn(entity, shift, x * (window.innerWidth - 40) + 20);
     }
-
-    var _i = utils.getRandom(0, l.length - 1);
-
-    var _utils$mapKeyToCode = utils.mapKeyToCode(state.lang, l[_i]),
-        code = _utils$mapKeyToCode.code,
-        shift = _utils$mapKeyToCode.shift;
-
-    var x = utils.keyPositions[code];
-    spawn(l[_i], shift, x * (window.innerWidth - 40) + 20);
     state.lastTime = time;
   }
 
-  requestAnimationFrame(update);
+  requestAnimationFrame(render);
+};
+
+var resume = function resume() {
+  state.updateInterval = setInterval(update, 16);
+  requestAnimationFrame(render);
 };
 
 var start = function start() {
   state.dom.setup.style.display = 'none';
   state.dom.info.style.display = 'none';
+  state.set = getSet();
   state.started = true;
-  requestAnimationFrame(update);
+  resume();
 };
 
 var restart = function restart() {
@@ -2229,28 +2296,91 @@ var restart = function restart() {
   start();
 };
 
-var removeKey = function removeKey(index) {
+var removeWord = function removeWord(index) {
   var explosion = document.createElement('div');
   explosion.classList.add('explosion');
-  explosion.style.left = state.falling[index].element.style.left;
-  explosion.style.top = state.falling[index].element.style.top;
+  explosion.style.left = state.falling[index].dom.style.left;
+  explosion.style.top = state.falling[index].dom.style.top;
+  explosion.style.width = state.falling[index].dom.clientWidth + 'px';
   state.dom.scene.appendChild(explosion);
   setTimeout(function () {
     return state.dom.scene.removeChild(explosion);
   }, 1000);
 
-  state.dom.scene.removeChild(state.falling[index].element);
+  state.dom.scene.removeChild(state.falling[index].dom);
   state.falling.splice(index, 1);
+
+  state.currentWord.wordIndex = -1;
+  state.currentWord.charIndex = 0;
+  state.currentWord.keyIndex = 0;
 };
 
-var checkKey = function checkKey(key) {
+var getWordForKey = function getWordForKey(key) {
+  if (state.currentWord.wordIndex >= 0) return state.currentWord;
   for (var i = 0; i < state.falling.length; i++) {
-    if (state.falling[i].text === key) {
-      removeKey(i);
-      return true;
+    if (state.falling[i].word === key) {
+      state.currentWord.wordIndex = i;
+      return { wordIndex: i, charIndex: 0, keyIndex: 0 };
+    } else if (state.falling[i].chars && state.falling[i].chars[0].keys[0] === key) {
+      state.falling[i].chars[0].dom.classList.add('current');
+      state.currentWord.wordIndex = i;
+      return { wordIndex: i, charIndex: 0, keyIndex: 0 };
     }
   }
-  return false;
+  return { wordIndex: -1, charIndex: 0, keyIndex: 0 };
+};
+
+var increaseCharacterIndex = function increaseCharacterIndex() {
+  var wordIndex = state.currentWord.wordIndex;
+  var charIndex = state.currentWord.charIndex;
+  var charsCount = state.falling[wordIndex].chars.length;
+  var keysCount = state.falling[wordIndex].chars[charIndex].keys.length;
+
+  state.currentWord.keyIndex++;
+  if (state.currentWord.keyIndex === keysCount) {
+    state.currentWord.charIndex++;
+    state.currentWord.keyIndex = 0;
+    if (state.currentWord.charIndex === charsCount) {
+      state.currentWord.wordIndex = -1;
+      state.currentWord.charIndex = 0;
+      state.currentWord.keyIndex = 0;
+      return consts.INCREASE_WORD_COMPLETE;
+    }
+    state.falling[wordIndex].chars[charIndex + 1].dom.classList.add('current');
+    return consts.INCREASE_CHAR_COMPLETE;
+  }
+  return consts.INCREASE_IDLE;
+};
+
+var validateKey = function validateKey(key) {
+  var _getWordForKey = getWordForKey(key),
+      wordIndex = _getWordForKey.wordIndex,
+      charIndex = _getWordForKey.charIndex,
+      keyIndex = _getWordForKey.keyIndex;
+
+  if (wordIndex >= 0) {
+    if (state.falling[wordIndex].word.length === 1) {
+      removeWord(wordIndex);
+      return { status: consts.INPUT_COMPLETE, score: 1 };
+    }
+    if (state.falling[wordIndex].chars[charIndex].keys[keyIndex] === key) {
+      var increaseStatus = increaseCharacterIndex();
+      if (increaseStatus === consts.INCREASE_IDLE) {
+        return { status: consts.INPUT_CORRECT };
+      }
+      if (increaseStatus === consts.INCREASE_CHAR_COMPLETE) {
+        state.falling[wordIndex].chars[charIndex].dom.classList.add('correct');
+        return { status: consts.INPUT_CORRECT };
+      }
+      if (increaseStatus === consts.INCREASE_WORD_COMPLETE) {
+        var length = state.falling[wordIndex].chars.length;
+        removeWord(wordIndex);
+        return { status: consts.INPUT_COMPLETE, score: length };
+      }
+    }
+    return { status: consts.INPUT_WRONG };
+  }
+  return { status: consts.INPUT_WRONG };
 };
 
 var showKeyboard = function showKeyboard(value) {
@@ -2323,10 +2453,6 @@ var main = async function main() {
   state.dom.keyboard_sel.value = state.showKeyboard;
   renderKeyboard(state.lang);
 
-  // Difficulty
-  // state.difficulty = parseInt(localStorage.getItem('difficulty') || 1)
-  // state.dom.difficulty_sel.value = state.difficulty
-
   await audio.loadInstrument(melodies[state.melody].instrument);
   state.dom.start.addEventListener('click', start);
 
@@ -2360,11 +2486,6 @@ var main = async function main() {
     showKeyboard(state.showKeyboard);
   });
 
-  // state.dom.difficulty_sel.addEventListener('change', ev => {
-  //   state.difficulty = parseInt(state.dom.difficulty_sel.value)
-  //   localStorage.setItem('difficulty', state.difficulty)
-  // })
-
   document.addEventListener('keydown', function (ev) {
     if (state.gameOver && ev.key === ' ') return restart();
     if (!state.started || state.gameOver) return;
@@ -2372,7 +2493,7 @@ var main = async function main() {
     if (ev.key === 'Escape' || ev.key === ' ') {
       if (state.pause) {
         setInfo(false);
-        requestAnimationFrame(update);
+        resume();
       } else {
         setInfo('Press space or escape to continue');
       }
@@ -2384,10 +2505,12 @@ var main = async function main() {
     var key = utils.mapKeyEvent[state.lang](ev);
     if (!key) return;
 
-    if (checkKey(key) || state.sandbox) {
+    var result = validateKey(key);
+    if (result.status == consts.INPUT_CORRECT) {
       playScore(state.score);
-      updateScore(state.score + 1);
-      // state.speed *= (1 + (0.003 * state.difficulty))
+    } else if (result.status == consts.INPUT_COMPLETE) {
+      playScore(state.score);
+      updateScore(state.score + result.score);
       state.speed += 0.005;
     } else {
       updateLives(state.lives - 1);
@@ -2399,7 +2522,7 @@ var main = async function main() {
 
 main().catch(console.error);
 
-},{"./audio":14,"./languages":20,"./melodies":32,"./style.css":35,"./utils":36,"query-string":8}],16:[function(require,module,exports){
+},{"./audio":14,"./constants":15,"./languages":21,"./melodies":33,"./style.css":36,"./utils":37,"query-string":8}],17:[function(require,module,exports){
 'use strict';
 
 var rows = [["Backquote", "Digit1", "Digit2", "Digit3", "Digit4", "Digit5", "Digit6", "Digit7", "Digit8", "Digit9", "Digit0", "Minus", "Equal"], ["KeyQ", "KeyW", "KeyE", "KeyR", "KeyT", "KeyY", "KeyU", "KeyI", "KeyO", "KeyP", "BracketLeft", "BracketRight", "Backslash"], ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG', 'KeyH', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon', 'Quote'], ['KeyZ', 'KeyX', 'KeyC', 'KeyV', 'KeyB', 'KeyN', 'KeyM', 'Comma', 'Period', 'Slash']];
@@ -2417,7 +2540,7 @@ for (var r in rows) {
 
 module.exports = positions;
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 module.exports={
 	"label": "German",
 	"sets": {
@@ -2455,6 +2578,20 @@ module.exports={
 			"Ä",
 			"Ö",
 			"Ü"
+		],
+		"words": [
+			"Hallo",
+			"Interessant",
+			"Tastatur",
+			"Heute",
+			"Morgen",
+			"Montag",
+			"Dienstag",
+			"Mittwoch",
+			"Donnerstag",
+			"Freitag",
+			"Samstag",
+			"Sonntag"
 		]
 	},
 	"modes": [
@@ -2476,11 +2613,17 @@ module.exports={
 				"consonants",
 				"vowels"
 			]
+		},
+		{
+			"label": "Words",
+			"sets": [
+				"words"
+			]
 		}
 	]
 }
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 module.exports={
 	"label": "English (U.S.)",
 	"sets": {
@@ -2513,6 +2656,21 @@ module.exports={
 			"O",
 			"U",
 			"Y"
+		],
+		"words": [
+			"Hello",
+			"Goodbye",
+			"Awesome",
+			"Keyboard",
+			"Today",
+			"Tomorrow",
+			"Monday",
+			"Tuesday",
+			"Wednesday",
+			"Thursday",
+			"Friday",
+			"Saturday",
+			"Sunday"
 		]
 	},
 	"modes": [
@@ -2534,11 +2692,17 @@ module.exports={
 				"consonants",
 				"vowels"
 			]
+		},
+		{
+			"label": "Words",
+			"sets": [
+				"words"
+			]
 		}
 	]
 }
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 module.exports={
 	"label": "Spanish",
 	"sets": {
@@ -2597,7 +2761,7 @@ module.exports={
 	]
 }
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -2609,7 +2773,7 @@ module.exports = {
   zh_tw: require('./zh-tw')
 };
 
-},{"./de-de":17,"./en-us":18,"./es-es":19,"./ko":21,"./ru":22,"./zh-tw":23}],21:[function(require,module,exports){
+},{"./de-de":18,"./en-us":19,"./es-es":20,"./ko":22,"./ru":23,"./zh-tw":24}],22:[function(require,module,exports){
 module.exports={
 	"label": "Korean",
 	"sets": {
@@ -2649,6 +2813,18 @@ module.exports={
 			"ㅠ",
 			"ㅜ",
 			"ㅡ"
+		],
+		"words": [
+			["안녕", "ㅇㅏㄴ", "ㄴㅕㅇ"],
+			["오늘", "ㅇㅗ", "ㄴㅡㄹ"],
+			["내일", "ㄴㅐ", "ㅇㅣㄹ"],
+			["월요일", "ㅇㅜㅓㄹ", "ㅇㅛ", "ㅇㅣㄹ"],
+			["화요일", "ㅎㅗㅏ", "ㅇㅛ", "ㅇㅣㄹ"],
+			["수요일", "ㅅㅜ", "ㅇㅛ", "ㅇㅣㄹ"],
+			["목요일", "ㅁㅗㄱ", "ㅇㅛ", "ㅇㅣㄹ"],
+			["금요일", "ㄱㅡㅁ", "ㅇㅛ", "ㅇㅣㄹ"],
+			["토요일", "ㅌㅗ", "ㅇㅛ", "ㅇㅣㄹ"],
+			["일요일", "ㅇㅣㄹ", "ㅇㅛ", "ㅇㅣㄹ"]
 		]
 	},
 	"modes": [
@@ -2670,11 +2846,17 @@ module.exports={
 				"consonants",
 				"vowels"
 			]
+		},
+		{
+			"label": "Words",
+			"sets": [
+				"words"
+			]
 		}
 	]
 }
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 module.exports={
 	"label": "Russian",
 	"sets": {
@@ -2724,7 +2906,7 @@ module.exports={
 	]
 }
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 module.exports={
 	"label": "Chinese (Zhuyin)",
 	"sets": {
@@ -2793,7 +2975,7 @@ module.exports={
 	]
 }
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "<",
@@ -2858,7 +3040,7 @@ module.exports={
   }
 }
 
-},{}],25:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "`",
@@ -2972,7 +3154,7 @@ module.exports={
   }
 }
 
-},{}],26:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "<",
@@ -3018,7 +3200,7 @@ module.exports={
   "Slash": "ç"
 }
 
-},{}],27:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 'use strict';
 
 var en_us = require('./en-us');
@@ -3032,7 +3214,7 @@ module.exports = {
   zh_tw: Object.assign({}, en_us, require('./zh-tw'))
 };
 
-},{"./de-de":24,"./en-us":25,"./es-es":26,"./ko":28,"./ru":29,"./zh-tw":30}],28:[function(require,module,exports){
+},{"./de-de":25,"./en-us":26,"./es-es":27,"./ko":29,"./ru":30,"./zh-tw":31}],29:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "₩",
@@ -3087,7 +3269,7 @@ module.exports={
   "KeyM": "ㅡ"
 }
 
-},{}],29:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "]",
@@ -3156,7 +3338,7 @@ module.exports={
   "Period": "ю"
 }
 
-},{}],30:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 module.exports={
   "Backquote": {
     "default": "·",
@@ -3340,7 +3522,7 @@ module.exports={
   }
 }
 
-},{}],31:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 'use strict';
 
 var scale = {
@@ -3376,7 +3558,7 @@ module.exports = {
     instrument: 'https://surikov.github.io/webaudiofontdata/sound/0000_JCLive_sf2_file.js'
 };
 
-},{}],32:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -3384,7 +3566,7 @@ module.exports = {
   korobeiniki: require('./korobeiniki')
 };
 
-},{"./beethoven":31,"./korobeiniki":33}],33:[function(require,module,exports){
+},{"./beethoven":32,"./korobeiniki":34}],34:[function(require,module,exports){
 'use strict';
 
 var scale = {
@@ -3502,7 +3684,7 @@ module.exports = {
     instrument: 'https://surikov.github.io/webaudiofontdata/sound/0800_SBLive_sf2.js'
 };
 
-},{}],34:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 'use strict';
 
 var _templateObject = _taggedTemplateLiteral(['\n    <div class="keyboard">\n      <div class="row">\n        <div class="key Backquote">', '</div>\n        <div class="key Digit1">', '</div>\n        <div class="key Digit2">', '</div>\n        <div class="key Digit3">', '</div>\n        <div class="key Digit4">', '</div>\n        <div class="key Digit5">', '</div>\n        <div class="key Digit6">', '</div>\n        <div class="key Digit7">', '</div>\n        <div class="key Digit8">', '</div>\n        <div class="key Digit9">', '</div>\n        <div class="key Digit0">', '</div>\n        <div class="key Minus">', '</div>\n        <div class="key Equal">', '</div>\n        <div class="key Backspace">\u2421</div>\n      </div>\n      <div class="row">\n        <div class="key Tab">\u21B9</div>\n        <div class="key KeyQ">', '</div>\n        <div class="key KeyW">', '</div>\n        <div class="key KeyE">', '</div>\n        <div class="key KeyR">', '</div>\n        <div class="key KeyT">', '</div>\n        <div class="key KeyY">', '</div>\n        <div class="key KeyU">', '</div>\n        <div class="key KeyI">', '</div>\n        <div class="key KeyO">', '</div>\n        <div class="key KeyP">', '</div>\n        <div class="key BracketLeft">', '</div>\n        <div class="key BracketRight">', '</div>\n        <div class="key Backslash">', '</div>\n      </div>\n      <div class="row">\n        <div class="key CapsLock">\u21EA</div>\n        <div class="key KeyA">', '</div>\n        <div class="key KeyS">', '</div>\n        <div class="key KeyD">', '</div>\n        <div class="key KeyF">', '</div>\n        <div class="key KeyG">', '</div>\n        <div class="key KeyH">', '</div>\n        <div class="key KeyJ">', '</div>\n        <div class="key KeyK">', '</div>\n        <div class="key KeyL">', '</div>\n        <div class="key Semicolon">', '</div>\n        <div class="key Quote">', '</div>\n        <div class="key Enter">\u23CE</div>\n      </div>\n      <div class="row">\n        <div class="key Shift">\u21E7</div>\n        <div class="key KeyZ">', '</div>\n        <div class="key KeyX">', '</div>\n        <div class="key KeyC">', '</div>\n        <div class="key KeyV">', '</div>\n        <div class="key KeyB">', '</div>\n        <div class="key KeyN">', '</div>\n        <div class="key KeyM">', '</div>\n        <div class="key Comma">', '</div>\n        <div class="key Period">', '</div>\n        <div class="key Slash">', '</div>\n        <div class="key Shift">\u21E7</div>\n      </div>\n    </div>\n  '], ['\n    <div class="keyboard">\n      <div class="row">\n        <div class="key Backquote">', '</div>\n        <div class="key Digit1">', '</div>\n        <div class="key Digit2">', '</div>\n        <div class="key Digit3">', '</div>\n        <div class="key Digit4">', '</div>\n        <div class="key Digit5">', '</div>\n        <div class="key Digit6">', '</div>\n        <div class="key Digit7">', '</div>\n        <div class="key Digit8">', '</div>\n        <div class="key Digit9">', '</div>\n        <div class="key Digit0">', '</div>\n        <div class="key Minus">', '</div>\n        <div class="key Equal">', '</div>\n        <div class="key Backspace">\u2421</div>\n      </div>\n      <div class="row">\n        <div class="key Tab">\u21B9</div>\n        <div class="key KeyQ">', '</div>\n        <div class="key KeyW">', '</div>\n        <div class="key KeyE">', '</div>\n        <div class="key KeyR">', '</div>\n        <div class="key KeyT">', '</div>\n        <div class="key KeyY">', '</div>\n        <div class="key KeyU">', '</div>\n        <div class="key KeyI">', '</div>\n        <div class="key KeyO">', '</div>\n        <div class="key KeyP">', '</div>\n        <div class="key BracketLeft">', '</div>\n        <div class="key BracketRight">', '</div>\n        <div class="key Backslash">', '</div>\n      </div>\n      <div class="row">\n        <div class="key CapsLock">\u21EA</div>\n        <div class="key KeyA">', '</div>\n        <div class="key KeyS">', '</div>\n        <div class="key KeyD">', '</div>\n        <div class="key KeyF">', '</div>\n        <div class="key KeyG">', '</div>\n        <div class="key KeyH">', '</div>\n        <div class="key KeyJ">', '</div>\n        <div class="key KeyK">', '</div>\n        <div class="key KeyL">', '</div>\n        <div class="key Semicolon">', '</div>\n        <div class="key Quote">', '</div>\n        <div class="key Enter">\u23CE</div>\n      </div>\n      <div class="row">\n        <div class="key Shift">\u21E7</div>\n        <div class="key KeyZ">', '</div>\n        <div class="key KeyX">', '</div>\n        <div class="key KeyC">', '</div>\n        <div class="key KeyV">', '</div>\n        <div class="key KeyB">', '</div>\n        <div class="key KeyN">', '</div>\n        <div class="key KeyM">', '</div>\n        <div class="key Comma">', '</div>\n        <div class="key Period">', '</div>\n        <div class="key Slash">', '</div>\n        <div class="key Shift">\u21E7</div>\n      </div>\n    </div>\n  ']);
@@ -3515,9 +3697,9 @@ module.exports = function (map) {
   return bel(_templateObject, map('Backquote'), map('Digit1'), map('Digit2'), map('Digit3'), map('Digit4'), map('Digit5'), map('Digit6'), map('Digit7'), map('Digit8'), map('Digit9'), map('Digit0'), map('Minus'), map('Equal'), map('KeyQ'), map('KeyW'), map('KeyE'), map('KeyR'), map('KeyT'), map('KeyY'), map('KeyU'), map('KeyI'), map('KeyO'), map('KeyP'), map('BracketLeft'), map('BracketRight'), map('Backslash'), map('KeyA'), map('KeyS'), map('KeyD'), map('KeyF'), map('KeyG'), map('KeyH'), map('KeyJ'), map('KeyK'), map('KeyL'), map('Semicolon'), map('Quote'), map('KeyZ'), map('KeyX'), map('KeyC'), map('KeyV'), map('KeyB'), map('KeyN'), map('KeyM'), map('Comma'), map('Period'), map('Slash'));
 };
 
-},{"bel":2}],35:[function(require,module,exports){
+},{"bel":2}],36:[function(require,module,exports){
 
-},{}],36:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 'use strict';
 
 var layouts = require('./layouts');
@@ -3575,4 +3757,4 @@ module.exports = {
   }
 };
 
-},{"./key-positions":16,"./layouts":27,"./render-keyboard":34}]},{},[15]);
+},{"./key-positions":17,"./layouts":28,"./render-keyboard":35}]},{},[16]);
