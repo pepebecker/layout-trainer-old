@@ -6,5 +6,6 @@ module.exports = {
   es_es: require('./es-es'),
   ko:    require('./ko'   ),
   ru:    require('./ru'   ),
+  zh_cn: require('./zh-cn'),
   zh_tw: require('./zh-tw')
 }

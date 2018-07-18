@@ -1,0 +1,40 @@
+{
+	"label": "Chinese (Pinyin)",
+	"sets": {
+		"words": [
+			["你好", "ni", "hao"],
+			["我们", "wo", "men"],
+			["你们", "ni", "men"],
+			["中国", "zhong", "guo"],
+			["熊猫", "xiong", "mao"],
+			["明天", "ming", "tian"],
+			["昨天", "zuo", "tian"],
+			["天气", "tian", "qi"]
+		],
+		"words-toned": [
+			["你好", "ni3", "hao3"],
+			["我们", "wo3", "men"],
+			["你们", "ni3", "men"],
+			["中国", "zhong1", "guo2"],
+			["熊猫", "xiong2", "mao1"],
+			["明天", "ming2", "tian1"],
+			["昨天", "zuo2", "tian1"],
+			["天气", "tian1", "qi4"]
+		]
+	},
+	"modes": [
+		{
+			"label": "Words",
+			"sets": [
+				"words"
+			]
+		},
+		{
+			"label": "Words (Pinyin with tone)",
+			"sets": [
+				"words-toned"
+			]
+		}
+	],
+	"layout": "en_us"
+}

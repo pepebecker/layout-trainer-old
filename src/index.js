@@ -2,7 +2,6 @@
 
 require('./style.css')
 
-const { parse } = require('query-string')
 const utils = require('./utils')
 const langs = require('./languages')
 const audio = require('./audio')
@@ -84,6 +83,10 @@ const showError = key => {
   }, 200)
 }
 
+const getLayoutCode = lang => {
+  return langs[lang].layout || lang
+}
+
 const getSet = () => {
   let l = []
   for (let set of langs[state.lang].modes[state.mode].sets) {
@@ -163,7 +166,7 @@ const render = time => {
     if (entity.length > 1) {
       spawn(entity)
     } else {
-      const { code, shift } = utils.mapKeyToCode(state.lang, entity)
+      const { code, shift } = utils.mapKeyToCode(getLayoutCode(state.lang), entity)
       const x = utils.keyPositions[code]
       spawn(entity, shift, x * (window.innerWidth - 40) + 20)
     }
@@ -299,7 +302,7 @@ const renderKeyboard = lang => {
   if (state.dom.keyboard) {
     document.body.removeChild(state.dom.keyboard)
   }
-  state.dom.keyboard = utils.renderKeyboard(utils.layouts[lang])
+  state.dom.keyboard = utils.renderKeyboard(utils.layouts[getLayoutCode(lang)])
   document.body.appendChild(state.dom.keyboard)
   showKeyboard(state.showKeyboard)
 }
@@ -399,7 +402,7 @@ const main = async () => {
 
     if (state.pause) return
 
-    const key = utils.mapKeyEvent[state.lang](ev)
+    const key = utils.mapKeyEvent[getLayoutCode(state.lang)](ev)
     if (!key) return
 
     const result = validateKey(key)
