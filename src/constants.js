@@ -1,0 +1,10 @@
+'use strict'
+
+module.exports = {
+  INCREASE_IDLE: 0,
+  INCREASE_CHAR_COMPLETE: 1,
+  INCREASE_WORD_COMPLETE: 2,
+  INPUT_WRONG: 3,
+  INPUT_CORRECT: 4,
+  INPUT_COMPLETE: 5
+}

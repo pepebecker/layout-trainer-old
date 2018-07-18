@@ -151,6 +151,7 @@ body {
 .entity {
   position: absolute;
   font-size: 2em;
+  min-width: 1.2em;
 }
 
 .entity.shift {
@@ -159,6 +160,10 @@ body {
 
 .char {
   display: inline;
+}
+
+.char.current {
+  color: gray;
 }
 
 .char.correct {
@@ -238,10 +243,7 @@ body {
   }
   100% {
     background: transparent;
-    width: 100px;
-    height: 100px;
-    margin-left: -30px;
-    margin-top: -30px;
+    transform: scale(2);
   }
 }
 

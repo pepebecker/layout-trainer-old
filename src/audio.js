@@ -27,9 +27,9 @@ const playNote = note => {
 const createPlayScore = melody => score => {
   for (let voice of melody) {
     const length = voice.notes.length
-    if(score >= voice.startAt && score < voice.endAt){
+    if (score >= voice.startAt && score < voice.endAt){
       const note = voice.notes[(score-voice.startAt) % length]
-      if(note) playNote(note)
+      if (note) playNote(note)
     }
   }
 }

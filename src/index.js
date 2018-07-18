@@ -7,12 +7,14 @@ const utils = require('./utils')
 const langs = require('./languages')
 const audio = require('./audio')
 const melodies = require('./melodies')
+const consts = require('./constants')
 
 window.state = {
   lang: null,
   mode: 0,
   set: [],
   falling: [],
+  currentWord: { wordIndex: -1, charIndex: 0, keyIndex: 0 },
   maxLives: 5,
   lives: 0,
   score: 0,
@@ -20,7 +22,6 @@ window.state = {
   started: false,
   pause: false,
   speed: .5,
-  // difficulty: 1,
   lastTime: 0,
   sandbox: false,
   updateInterval: null,
@@ -33,7 +34,6 @@ window.state = {
     mode_sel: document.querySelector('.mode_sel'),
     melody_sel: document.querySelector('.melody_sel'),
     keyboard_sel: document.querySelector('.keyboard_sel'),
-    // difficulty_sel: document.querySelector('.difficulty_sel'),
     scene: document.querySelector('.scene'),
     score: document.querySelector('.score_value'),
     lives: document.querySelector('.lives'),
@@ -92,30 +92,46 @@ const getSet = () => {
   return l
 }
 
-const spawn = (text, shift, x = -1) => {
-  const element = document.createElement('div')
-  const count = state.falling.push({
-    text, element, y: 0,
-    chars: text.length > 1 ? [] : null,
-    speed: state.speed
-  })
-  element.className = 'entity'
-  if (text.length > 1) {
+const populateWithChars = (element, word) => {
+  const characters = []
+  if (typeof word === 'string') {
+    for (let i = 0; i < word.length; i++) {
+      const char = document.createElement('div')
+      char.className = 'char'
+      char.appendChild(document.createTextNode(word[i]))
+      element.appendChild(char)
+      characters.push({ char: word[i], dom: char, keys: word[i].toUpperCase() })
+    }
+  } else {
+    const text = word[0]
     for (let i = 0; i < text.length; i++) {
       const char = document.createElement('div')
       char.className = 'char'
       char.appendChild(document.createTextNode(text[i]))
       element.appendChild(char)
-      state.falling[count - 1].chars.push({ text: text[i], dom: char })
+      characters.push({ char: text[i], dom: char, keys: word[i + 1].toUpperCase() })
     }
+  }  
+  return characters
+}
+
+const spawn = (word, shift, x = -1) => {
+  const wordEl = document.createElement('div')
+  const count = state.falling.push({
+    word, dom: wordEl, y: 0,
+    speed: state.speed
+  })
+  wordEl.className = 'entity'
+  if (word.length > 1) {
+    state.falling[count - 1].chars = populateWithChars(wordEl, word)
   } else {
-    element.appendChild(document.createTextNode(text))
+    wordEl.appendChild(document.createTextNode(word))
     state.falling[count - 1].speed *= (Math.random() * 0.6 + 0.8)
   }
-  if (shift) element.classList.add('shift')
-  state.dom.scene.appendChild(element)
-  x = (x > -1 ? x : utils.getRandom(20, window.innerWidth - 40 - element.clientWidth))
-  element.style.left = x + 'px'
+  if (shift) wordEl.classList.add('shift')
+  state.dom.scene.appendChild(wordEl)
+  x = (x > -1 ? x : utils.getRandom(20, window.innerWidth - 40 - wordEl.clientWidth))
+  wordEl.style.left = x + 'px'
 }
 
 const update = () => {
@@ -127,7 +143,7 @@ const update = () => {
   for (const i in state.falling) {
     state.falling[i].y += state.falling[i].speed
     if (state.falling[i].y > window.innerHeight) {
-      state.dom.scene.removeChild(state.falling[i].element)
+      state.dom.scene.removeChild(state.falling[i].dom)
       state.falling.splice(i, 1)
       if (!state.sandbox) updateLives(state.lives - 1)
     }
@@ -138,7 +154,7 @@ const render = time => {
   if (state.pause || state.gameOver) return
 
   for (const i in state.falling) {
-    state.falling[i].element.style.top = state.falling[i].y + 'px'
+    state.falling[i].dom.style.top = state.falling[i].y + 'px'
   }
 
   if (time > state.lastTime + (1000 / state.speed)) {
@@ -184,49 +200,83 @@ const restart = () => {
 const removeWord = index => {
   const explosion = document.createElement('div')
   explosion.classList.add('explosion')
-  explosion.style.left = state.falling[index].element.style.left
-  explosion.style.top = state.falling[index].element.style.top
+  explosion.style.left = state.falling[index].dom.style.left
+  explosion.style.top = state.falling[index].dom.style.top
+  explosion.style.width = state.falling[index].dom.clientWidth + 'px'
   state.dom.scene.appendChild(explosion)
   setTimeout(() => state.dom.scene.removeChild(explosion), 1000)
 
-  state.dom.scene.removeChild(state.falling[index].element)
+  state.dom.scene.removeChild(state.falling[index].dom)
   state.falling.splice(index, 1)
+
+  state.currentWord.wordIndex = -1
+  state.currentWord.charIndex = 0
+  state.currentWord.keyIndex = 0
 }
 
-const INPUT_WRONG = 0
-const INPUT_CORRECT = 1
-const INPUT_COMPLETE = 2
-const checkKey = key => {
+const getWordForKey = key => {
+  if (state.currentWord.wordIndex >= 0) return state.currentWord
   for (let i = 0; i < state.falling.length; i++) {
-    if (state.falling[i].text.length > 1) {
-      for (const c in state.falling[i].chars) {
-        if (state.falling[i].chars[c].dom.classList.contains('correct')) {
-          continue
-        }
-        if (state.falling[i].chars[c].text.toLowerCase() === key.toLowerCase()) {
-          state.falling[i].chars[c].dom.classList.add('correct')
-          if (c >= state.falling[i].chars.length - 1) {
-            removeWord(i)
-            return {
-              status: INPUT_COMPLETE,
-              score: state.falling[i].chars.length
-            }
-          }
-          return { status: INPUT_CORRECT }
-        }
-        return { status: INPUT_WRONG }
-      }
-    } else {
-      if (state.falling[i].text === key) {
-        removeWord(i)
-        return {
-          status: INPUT_COMPLETE,
-          score: 1
-        }
-      }
+    if (state.falling[i].word === key) {
+      state.currentWord.wordIndex = i
+      return { wordIndex: i, charIndex: 0, keyIndex: 0 }
+    } else if (state.falling[i].chars && state.falling[i].chars[0].keys[0] === key) {
+      state.falling[i].chars[0].dom.classList.add('current')
+      state.currentWord.wordIndex = i
+      return { wordIndex: i, charIndex: 0, keyIndex: 0 }
     }
   }
-  return INPUT_WRONG
+  return { wordIndex: -1, charIndex: 0, keyIndex: 0 }
+}
+
+const increaseCharacterIndex = () => {
+  const wordIndex = state.currentWord.wordIndex
+  const charIndex = state.currentWord.charIndex
+  const charsCount = state.falling[wordIndex].chars.length
+  const keysCount = state.falling[wordIndex].chars[charIndex].keys.length
+
+  state.currentWord.keyIndex ++
+  if (state.currentWord.keyIndex === keysCount) {
+    state.currentWord.charIndex ++
+    state.currentWord.keyIndex = 0
+    if (state.currentWord.charIndex === charsCount) {
+      state.currentWord.wordIndex = -1
+      state.currentWord.charIndex = 0
+      state.currentWord.keyIndex = 0
+      return consts.INCREASE_WORD_COMPLETE
+    }
+    state.falling[wordIndex].chars[charIndex + 1].dom.classList.add('current')
+    return consts.INCREASE_CHAR_COMPLETE
+  }
+  return consts.INCREASE_IDLE
+}
+
+const validateKey = key => {
+  const { wordIndex, charIndex, keyIndex } = getWordForKey(key)
+  
+  if (wordIndex >= 0) {
+    if (state.falling[wordIndex].word.length === 1) {
+      removeWord(wordIndex)
+      return { status: consts.INPUT_COMPLETE, score: 1 }
+    }
+    if (state.falling[wordIndex].chars[charIndex].keys[keyIndex] === key) {
+      const increaseStatus = increaseCharacterIndex()
+      if (increaseStatus === consts.INCREASE_IDLE) {
+        return { status: consts.INPUT_CORRECT }
+      }
+      if (increaseStatus === consts.INCREASE_CHAR_COMPLETE) {
+        state.falling[wordIndex].chars[charIndex].dom.classList.add('correct')
+        return { status: consts.INPUT_CORRECT }
+      }
+      if (increaseStatus === consts.INCREASE_WORD_COMPLETE) {
+        const length = state.falling[wordIndex].chars.length
+        removeWord(wordIndex)
+        return { status: consts.INPUT_COMPLETE, score: length }
+      }
+    }
+    return { status: consts.INPUT_WRONG }
+  }
+  return { status: consts.INPUT_WRONG }
 }
 
 const showKeyboard = value => {
@@ -299,10 +349,6 @@ const main = async () => {
   state.dom.keyboard_sel.value = state.showKeyboard
   renderKeyboard(state.lang)
 
-  // Difficulty
-  // state.difficulty = parseInt(localStorage.getItem('difficulty') || 1)
-  // state.dom.difficulty_sel.value = state.difficulty
-
   await audio.loadInstrument(melodies[state.melody].instrument)
   state.dom.start.addEventListener('click', start)
 
@@ -337,11 +383,6 @@ const main = async () => {
     showKeyboard(state.showKeyboard)
   })
 
-  // state.dom.difficulty_sel.addEventListener('change', ev => {
-  //   state.difficulty = parseInt(state.dom.difficulty_sel.value)
-  //   localStorage.setItem('difficulty', state.difficulty)
-  // })
-
   document.addEventListener('keydown', ev => {
     if (state.gameOver && ev.key === ' ') return restart()
     if (!state.started || state.gameOver) return
@@ -361,10 +402,10 @@ const main = async () => {
     const key = utils.mapKeyEvent[state.lang](ev)
     if (!key) return
 
-    const result = checkKey(key)
-    if (result.status === INPUT_CORRECT) {
+    const result = validateKey(key)
+    if (result.status == consts.INPUT_CORRECT) {
       playScore(state.score)
-    } else if (result.status === INPUT_COMPLETE) {
+    } else if (result.status == consts.INPUT_COMPLETE) {
       playScore(state.score)
       updateScore(state.score + result.score)
       state.speed += 0.005
