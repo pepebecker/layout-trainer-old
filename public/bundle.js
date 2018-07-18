@@ -1779,7 +1779,7 @@ window.state = {
   sandbox: false,
   updateInterval: null,
   showKeyboard: 'hidden',
-  melody: 'beethoven',
+  melody: 'odeToJoy',
   dom: {
     setup: document.querySelector('.setup'),
     start: document.querySelector('.start_btn'),
@@ -2051,11 +2051,11 @@ var validateKey = function validateKey(key) {
     if (state.falling[wordIndex].chars[charIndex].keys[keyIndex] === key) {
       var increaseStatus = increaseCharacterIndex();
       if (increaseStatus === consts.INCREASE_IDLE) {
-        return { status: consts.INPUT_CORRECT };
+        return { status: consts.INPUT_CORRECT, score: 1 };
       }
       if (increaseStatus === consts.INCREASE_CHAR_COMPLETE) {
         state.falling[wordIndex].chars[charIndex].dom.classList.add('correct');
-        return { status: consts.INPUT_CORRECT };
+        return { status: consts.INPUT_CORRECT, score: 1 };
       }
       if (increaseStatus === consts.INCREASE_WORD_COMPLETE) {
         var length = state.falling[wordIndex].chars.length;
@@ -2193,9 +2193,10 @@ var main = async function main() {
     var result = validateKey(key);
     if (result.status == consts.INPUT_CORRECT) {
       playScore(state.score);
+      updateScore(state.score + result.score);
     } else if (result.status == consts.INPUT_COMPLETE) {
       playScore(state.score);
-      updateScore(state.score + result.score);
+      // updateScore(state.score + result.score)
       state.speed += 0.005;
     } else {
       updateLives(state.lives - 1);
@@ -2207,7 +2208,7 @@ var main = async function main() {
 
 main().catch(console.error);
 
-},{"./audio":11,"./constants":12,"./languages":18,"./melodies":31,"./style.css":34,"./utils":35}],14:[function(require,module,exports){
+},{"./audio":11,"./constants":12,"./languages":18,"./melodies":30,"./style.css":34,"./utils":35}],14:[function(require,module,exports){
 'use strict';
 
 var rows = [["Backquote", "Digit1", "Digit2", "Digit3", "Digit4", "Digit5", "Digit6", "Digit7", "Digit8", "Digit9", "Digit0", "Minus", "Equal"], ["KeyQ", "KeyW", "KeyE", "KeyR", "KeyT", "KeyY", "KeyU", "KeyI", "KeyO", "KeyP", "BracketLeft", "BracketRight", "Backslash"], ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG', 'KeyH', 'KeyJ', 'KeyK', 'KeyL', 'Semicolon', 'Quote'], ['KeyZ', 'KeyX', 'KeyC', 'KeyV', 'KeyB', 'KeyN', 'KeyM', 'Comma', 'Period', 'Slash']];
@@ -3253,48 +3254,12 @@ module.exports={
 },{}],30:[function(require,module,exports){
 'use strict';
 
-var scale = {
-    c: 0 + 5 * 12,
-    cis: 1 + 5 * 12,
-    d: 2 + 5 * 12,
-    dis: 3 + 5 * 12,
-    e: 4 + 5 * 12,
-    f: 5 + 5 * 12,
-    fis: 6 + 5 * 12,
-    g: 7 + 5 * 12,
-    gis: 8 + 5 * 12,
-    a: 9 + 5 * 12,
-    ais: 10 + 5 * 12,
-    h: 11 + 5 * 12
-};
-
-var voices = [{
-    name: 'treble',
-    startAt: 0, // start at the first note
-    endAt: Infinity,
-    notes: [scale.e, scale.e, scale.f, scale.g, scale.g, scale.f, scale.e, scale.d, scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.d, scale.e, scale.e, scale.f, scale.g, scale.g, scale.f, scale.e, scale.d, scale.c, scale.c, scale.d, scale.e, scale.d, scale.c, scale.c, scale.d, scale.d, scale.e, scale.c, scale.d, scale.e, scale.f, scale.e, scale.c, scale.d, scale.e, scale.f, scale.e, scale.d, scale.c, scale.d, scale.g - 12, scale.e, scale.e, scale.f, scale.g, scale.g, scale.f, scale.e, scale.d, scale.c, scale.c, scale.d, scale.e, scale.d, scale.c, scale.c]
-}, {
-    name: 'bass',
-    startAt: 62, // start at 63rd note
-    endAt: Infinity,
-    notes: [scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.c, scale.c, scale.g - 12, scale.g - 12, scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.g - 12, scale.c, scale.e - 12, scale.g - 12, scale.c, scale.d, scale.c, scale.e - 12, scale.g - 12, scale.c, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.g - 12, scale.g - 24, scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.c, scale.g - 12, scale.e - 12, scale.e - 12]
-}];
-
 module.exports = {
-    voices: voices,
-    label: 'Beethoven',
-    instrument: 'https://surikov.github.io/webaudiofontdata/sound/0000_JCLive_sf2_file.js'
-};
-
-},{}],31:[function(require,module,exports){
-'use strict';
-
-module.exports = {
-  beethoven: require('./beethoven'),
+  odeToJoy: require('./ode-to-joy'),
   korobeiniki: require('./korobeiniki')
 };
 
-},{"./beethoven":30,"./korobeiniki":32}],32:[function(require,module,exports){
+},{"./korobeiniki":31,"./ode-to-joy":32}],31:[function(require,module,exports){
 'use strict';
 
 var scale = {
@@ -3410,6 +3375,42 @@ module.exports = {
     voices: voices,
     label: 'Korobeiniki',
     instrument: 'https://surikov.github.io/webaudiofontdata/sound/0800_SBLive_sf2.js'
+};
+
+},{}],32:[function(require,module,exports){
+'use strict';
+
+var scale = {
+    c: 0 + 5 * 12,
+    cis: 1 + 5 * 12,
+    d: 2 + 5 * 12,
+    dis: 3 + 5 * 12,
+    e: 4 + 5 * 12,
+    f: 5 + 5 * 12,
+    fis: 6 + 5 * 12,
+    g: 7 + 5 * 12,
+    gis: 8 + 5 * 12,
+    a: 9 + 5 * 12,
+    ais: 10 + 5 * 12,
+    h: 11 + 5 * 12
+};
+
+var voices = [{
+    name: 'treble',
+    startAt: 0, // start at the first note
+    endAt: Infinity,
+    notes: [scale.e, scale.e, scale.f, scale.g, scale.g, scale.f, scale.e, scale.d, scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.d, scale.e, scale.e, scale.f, scale.g, scale.g, scale.f, scale.e, scale.d, scale.c, scale.c, scale.d, scale.e, scale.d, scale.c, scale.c, scale.d, scale.d, scale.e, scale.c, scale.d, scale.e, scale.f, scale.e, scale.c, scale.d, scale.e, scale.f, scale.e, scale.d, scale.c, scale.d, scale.g - 12, scale.e, scale.e, scale.f, scale.g, scale.g, scale.f, scale.e, scale.d, scale.c, scale.c, scale.d, scale.e, scale.d, scale.c, scale.c]
+}, {
+    name: 'bass',
+    startAt: 62, // start at 63rd note
+    endAt: Infinity,
+    notes: [scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.c, scale.c, scale.g - 12, scale.g - 12, scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.g - 12, scale.c, scale.e - 12, scale.g - 12, scale.c, scale.d, scale.c, scale.e - 12, scale.g - 12, scale.c, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.g - 12, scale.g - 24, scale.c, scale.c, scale.d, scale.e, scale.e, scale.d, scale.c, scale.g - 12, scale.e - 12, scale.e - 12, scale.g - 12, scale.c, scale.g - 12, scale.e - 12, scale.e - 12]
+}];
+
+module.exports = {
+    voices: voices,
+    label: 'Ode To Joy',
+    instrument: 'https://surikov.github.io/webaudiofontdata/sound/0000_JCLive_sf2_file.js'
 };
 
 },{}],33:[function(require,module,exports){
