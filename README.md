@@ -6,7 +6,7 @@
 [![MIT-licensed](https://img.shields.io/github/license/pepebecker/layout-trainer.svg)](https://opensource.org/licenses/MIT)
 [![chat on gitter](https://badges.gitter.im/pepebecker.svg)](https://gitter.im/pepebecker)
 
-## [Open App in Browser](http://layout-trainer.pepebecker.com)
+## [Open App in Browser](http://layout-trainer.pepe.asia)
 
 ## Contributing
 
